@@ -68,7 +68,7 @@ compile MDQuickLookThumbnail -application-extension -parse-as-library \
     -Xlinker -e -Xlinker _NSExtensionMain
 
 log "Compiling host app"
-compile MDQuickLook "$M/App/main.swift" "$M/Shared/Settings.swift" -framework AppKit -framework Quartz
+compile MDQuickLook "$M/App/main.swift" "$M/App/Updater.swift" "$M/Shared/Settings.swift" -framework AppKit -framework Quartz
 
 # 3. Bundle ----------------------------------------------------------------
 log "Assembling bundle"
