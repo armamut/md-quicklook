@@ -7,7 +7,7 @@ LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/Launc
 THUMBNAILS_AGENT := /System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
 QL_UI_SERVICE := /System/Library/Frameworks/QuickLookUI.framework/Versions/A/XPCServices/QuickLookUIService.xpc/Contents/MacOS/QuickLookUIService
 
-.PHONY: all build native install uninstall reset test bench release clean snapshot-tool
+.PHONY: all build native install uninstall reset test bench release clean snapshot-tool math-coverage
 
 all: build
 
@@ -49,8 +49,11 @@ release: build    ## Zip the universal app for a GitHub release
 	cd build && ditto -c -k --sequesterRsrc --keepParent "$(APP_NAME)" "MD-QuickLook-$(VERSION).zip"
 	@shasum -a 256 "build/MD-QuickLook-$(VERSION).zip"
 
-snapshot-tool:    ## Dev tool: render Markdown natively to a PNG (build/native-snapshot)
+snapshot-tool:    ## Dev tools: build/native-snapshot (Markdown to PNG), build/math-coverage
 	scripts/build-snapshot-tool.sh
+
+math-coverage: snapshot-tool  ## Check that every formula in the examples typesets
+	build/math-coverage examples/*.md --list --min 100
 
 clean:
 	rm -rf build

@@ -33,7 +33,7 @@
 
 ## Fast
 
-There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) parses the Markdown into a compact layout, and the Swift extension draws it with TextKit, the text system behind every Mac app. Math is typeset with [SwiftMath](https://github.com/mgriebling/SwiftMath).
+There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) parses the Markdown into a compact layout, and the Swift extension draws it with TextKit, the text system behind every Mac app. Math is typeset with [SwiftMath](https://github.com/mgriebling/SwiftMath), extended with KaTeX symbols, aliases and environments (see [examples/math.md](examples/math.md)).
 
 | | Native (default) | WebKit (optional) |
 |---|---|---|

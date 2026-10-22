@@ -40,6 +40,7 @@ class MTAtomTokenizer {
         var elements: [MTBreakableElement] = []
         var index = 0
         var currentStyle = self.style
+        var lastType: MTMathAtomType? = nil
 
         while index < atoms.count {
             let atom = atoms[index]
@@ -60,6 +61,18 @@ class MTAtomTokenizer {
             } else {
                 atomTokenizer = self
             }
+
+            // md-quicklook: TeX's spacing between neighbouring atoms (\sin x,
+            // "a, b"); upstream only spaces binary operators and relations,
+            // whose widths already include it.
+            if let left = lastType, atom.type != .space {
+                let spaced: Set<MTMathAtomType> = [.binaryOperator, .relation]
+                if !spaced.contains(left), !spaced.contains(atom.type) {
+                    let gap = atomTokenizer.widthCalculator.getInterElementSpacing(left: left, right: atom.type)
+                    if gap > 0 { elements.append(atomTokenizer.spaceElement(width: gap, atom: atom)) }
+                }
+            }
+            lastType = atom.type == .space ? nil : atom.type
 
             // Handle scripts (subscript/superscript) - these must be grouped with their base
             if atom.superScript != nil || atom.subScript != nil {
@@ -1121,9 +1134,15 @@ class MTAtomTokenizer {
     private func tokenizeSpace(_ atom: MTMathAtom, prevAtom: MTMathAtom?, atomIndex: Int) -> MTBreakableElement? {
         // Space atoms typically don't participate in breaking
         // They are rendered as-is
-        let width = widthCalculator.measureSpace(atom.type)
+        // md-quicklook: use the space's own width (\quad, \;, \! ...); upstream
+        // gives every explicit space 3mu.
+        let width = (atom as? MTMathSpace).map { $0.space * (widthCalculator.font.mathTable?.muUnit ?? 0) }
+            ?? widthCalculator.measureSpace(atom.type)
+        return spaceElement(width: width, atom: atom)
+    }
 
-        return MTBreakableElement(
+    fileprivate func spaceElement(width: CGFloat, atom: MTMathAtom) -> MTBreakableElement {
+        MTBreakableElement(
             content: .space(width),
             width: width,
             height: 0,

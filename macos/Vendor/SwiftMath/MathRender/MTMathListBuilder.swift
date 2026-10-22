@@ -973,7 +973,16 @@ public struct MTMathListBuilder {
             if env == nil {
                 return nil;
             }
-            let table = self.buildTable(env: env, firstList:nil, isRow:false)
+            // md-quicklook: read the optional alignment of starred matrix
+            // environments here too (upstream only does so in unused code).
+            var alignment: MTColumnAlignment? = nil
+            if env!.hasSuffix("*") {
+                alignment = self.readOptionalAlignment()
+                if self.error != nil {
+                    return nil
+                }
+            }
+            let table = self.buildTable(env: env, alignment: alignment, firstList:nil, isRow:false)
             return table
         } else if command == "color" {
             // A color command has 2 arguments

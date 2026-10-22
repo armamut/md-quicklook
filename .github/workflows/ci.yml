@@ -19,3 +19,5 @@ jobs:
         run: cargo test --release --manifest-path core/Cargo.toml
       - name: Build universal app
         run: scripts/build.sh
+      - name: Math coverage
+        run: make math-coverage

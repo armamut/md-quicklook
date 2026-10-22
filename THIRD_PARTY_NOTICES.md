@@ -8,7 +8,7 @@ MD QuickLook is MIT licensed. It builds on these projects:
 | [syntect](https://github.com/trishume/syntect) | Syntax highlighting engine | MIT |
 | [Oniguruma](https://github.com/kkos/oniguruma) (via onig) | Regular expressions for highlighting | BSD-2-Clause |
 | [two-face](https://github.com/CosmicHorrorDev/two-face) / [bat](https://github.com/sharkdp/bat) | Syntax definitions (each grammar keeps its own license, see bat's repository) | MIT / Apache-2.0 |
-| [SwiftMath](https://github.com/mgriebling/SwiftMath) (vendored in `macos/Vendor/SwiftMath`) | Native LaTeX math typesetting | MIT |
+| [SwiftMath](https://github.com/mgriebling/SwiftMath) (vendored in `macos/Vendor/SwiftMath`, with small fixes listed in its README) | Native LaTeX math typesetting | MIT |
 | [Latin Modern Math](https://www.gust.org.pl/projects/e-foundry/lm-math) (in `mathFonts.bundle`) | Math font | GUST Font License |
 | [pulldown-latex](https://github.com/carloskiki/pulldown-latex) | LaTeX to MathML for the WebKit renderer; `core/assets/math.css` is adapted from its stylesheet | MIT |
 | [emojis](https://github.com/rossmacarthur/emojis) (via comrak) | `:shortcode:` emoji | MIT / Apache-2.0 |
