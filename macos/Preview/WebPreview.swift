@@ -3,13 +3,11 @@ import OSLog
 import QuickLookUI
 import WebKit
 
-private let log = Logger(subsystem: "io.github.armamut.mdquicklook", category: "preview")
+let log = Logger(subsystem: "io.github.armamut.mdquicklook", category: "preview")
 
-/// View-based Quick Look preview: renders Markdown to HTML and shows it in a
-/// web view that fills whatever space the host gives it — Finder's space-bar
-/// panel, the preview pane and the column view's last column.
-@objc(MDQLPreviewViewController)
-final class PreviewViewController: NSViewController, QLPreviewingController, WKNavigationDelegate {
+/// The WebKit renderer, kept as an alternative to the native one (setting
+/// `UseWebRenderer`): renders Markdown to HTML and shows it in a web view.
+final class WebPreviewController: NSViewController, QLPreviewingController, WKNavigationDelegate {
     /// Files larger than this are shown as plain text.
     private static let maxRenderSize = 64 * 1024 * 1024
 
@@ -197,11 +195,5 @@ enum WebViewPool {
         webView.setValue(false, forKey: "drawsBackground")
         webView.allowsMagnification = true
         return webView
-    }
-}
-
-private extension DispatchTime {
-    var millisecondsAgo: Double {
-        Double(DispatchTime.now().uptimeNanoseconds - uptimeNanoseconds) / 1_000_000
     }
 }

@@ -22,7 +22,23 @@ uint8_t *mdql_render_html(const uint8_t *data, size_t len,
                           const char *base_dir, const char *title,
                           uint32_t theme, uint32_t flags, size_t *out_len);
 
-/// Releases a buffer returned by mdql_render_html().
+/// Renders Markdown bytes into the native layout below (for TextKit).
+/// Returns NULL on failure; otherwise free the result with mdql_free().
+///
+/// Layout, all integers little-endian, offsets/lengths in UTF-16 units:
+///   "MDQ1"
+///   u32 n, n bytes                      text (UTF-8; U+FFFC marks attachments)
+///   u32 n, n x { u32 len, bytes }       string table (URLs, paths, LaTeX…)
+///   u32 n, n x 16-byte blocks           { u8 kind, u8 flags, u16 parent, u32 a, b, c }
+///   u32 n, n x 16-byte paragraphs       { u32 start, len, u16 block, u8 kind, u8 level, u32 extra }
+///   u32 n, n x 28-byte runs             { u32 start, len, flags, a, b, c, d }
+/// Kinds and flags are defined in core/src/native.rs (modules block, para,
+/// run, attach) and mirrored in macos/Native/NativeDocument.swift.
+uint8_t *mdql_render_native(const uint8_t *data, size_t len,
+                            const char *base_dir, uint32_t flags,
+                            size_t *out_len);
+
+/// Releases a buffer returned by mdql_render_html() or mdql_render_native().
 void mdql_free(uint8_t *ptr, size_t len);
 
 /// Number of languages accepted by mdql_warm_up_language().

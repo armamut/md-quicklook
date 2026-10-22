@@ -4,7 +4,7 @@ INSTALL_DIR ?= /Applications
 VERSION    := $(shell tr -d '[:space:]' < VERSION)
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 
-.PHONY: all build native install uninstall reset test bench release clean
+.PHONY: all build native install uninstall reset test bench release clean snapshot-tool
 
 all: build
 
@@ -44,6 +44,9 @@ bench:            ## Time rendering of the showcase document
 release: build    ## Zip the universal app for a GitHub release
 	cd build && ditto -c -k --sequesterRsrc --keepParent "$(APP_NAME)" "MD-QuickLook-$(VERSION).zip"
 	@shasum -a 256 "build/MD-QuickLook-$(VERSION).zip"
+
+snapshot-tool:    ## Dev tool: render Markdown natively to a PNG (build/native-snapshot)
+	scripts/build-snapshot-tool.sh
 
 clean:
 	rm -rf build

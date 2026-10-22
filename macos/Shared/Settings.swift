@@ -6,6 +6,11 @@ enum Settings {
     static let previewExtensionID = "io.github.armamut.mdquicklook.preview"
     private static let remoteImagesKey = "LoadRemoteImages"
 
+    /// Use the WebKit renderer instead of the native one.
+    static var useWebRenderer: Bool {
+        UserDefaults.standard.bool(forKey: "UseWebRenderer")
+    }
+
     /// Load http(s) images such as README badges. Off by default for privacy.
     static var loadRemoteImages: Bool {
         UserDefaults.standard.bool(forKey: remoteImagesKey)

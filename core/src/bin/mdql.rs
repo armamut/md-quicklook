@@ -1,4 +1,4 @@
-//! Command-line front end: `mdql [FILE] [-o OUT.html] [--theme auto|light|dark] [--remote-images] [--fragment] [--bench N]`.
+//! Command-line front end: `mdql [FILE] [-o OUT.html] [--theme auto|light|dark] [--remote-images] [--native] [--fragment] [--bench N]`.
 //! Reads standard input when no file is given.
 
 use std::io::{Read, Write};
@@ -12,6 +12,7 @@ fn main() {
     let mut bench = 0usize;
     let mut theme = mdql::Theme::Auto;
     let mut remote_images = false;
+    let mut native = false;
 
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -19,6 +20,7 @@ fn main() {
             "-o" | "--output" => output = args.next().map(PathBuf::from),
             "--fragment" => fragment = true,
             "--remote-images" => remote_images = true,
+            "--native" => native = true,
             "--theme" => {
                 theme = match args.next().as_deref() {
                     Some("light") => mdql::Theme::Light,
@@ -29,7 +31,7 @@ fn main() {
             }
             "--bench" => bench = args.next().and_then(|n| n.parse().ok()).unwrap_or(100),
             "-h" | "--help" => {
-                println!("usage: mdql [FILE] [-o OUT.html] [--theme auto|light|dark] [--remote-images] [--fragment] [--bench N]");
+                println!("usage: mdql [FILE] [-o OUT.html] [--theme auto|light|dark] [--remote-images] [--native] [--fragment] [--bench N]");
                 return;
             }
             _ => input = Some(PathBuf::from(arg)),
@@ -54,7 +56,17 @@ fn main() {
         remote_images,
     };
     let text = mdql::decode_text(&bytes);
-    let render = || if fragment { mdql::render_fragment(&text, &opts) } else { mdql::render_document(&text, &opts) };
+    let render = || {
+        if native {
+            // Bench the binary layout; print a readable dump of it otherwise.
+            let bytes = mdql::native::render_native(&text, opts.base_dir.as_deref(), opts.remote_images);
+            if bench > 0 { format!("{}", bytes.len()) } else { native_dump(&bytes) }
+        } else if fragment {
+            mdql::render_fragment(&text, &opts)
+        } else {
+            mdql::render_document(&text, &opts)
+        }
+    };
 
     if bench > 0 {
         let t = Instant::now();
@@ -80,6 +92,23 @@ fn main() {
         Some(p) => std::fs::write(&p, html).unwrap_or_else(|e| fail(&format!("{}: {e}", p.display()))),
         None => std::io::stdout().write_all(html.as_bytes()).unwrap_or_else(|e| fail(&e.to_string())),
     }
+}
+
+fn native_dump(bytes: &[u8]) -> String {
+    use std::fmt::Write;
+    let d = mdql::native::Decoded::parse(bytes).unwrap_or_else(|| fail("invalid native layout"));
+    let mut out = String::new();
+    let _ = writeln!(out, "{} bytes, {} paragraphs, {} runs, {} blocks, {} strings", bytes.len(), d.paras.len(), d.runs.len(), d.blocks.len(), d.strings.len());
+    for (i, b) in d.blocks.iter().enumerate() {
+        let _ = writeln!(out, "block {i}: kind={} flags={} parent={} a={} b={}", b.0, b.1, b.2 as i32 - if b.2 == u16::MAX { 65536 } else { 0 }, b.3, b.4);
+    }
+    for p in &d.paras {
+        let _ = writeln!(out, "para kind={} level={} block={} extra={:#x} {:?}", p.3, p.4, p.2, p.5, d.slice(p.0, p.1));
+    }
+    for r in &d.runs {
+        let _ = writeln!(out, "  run flags={:#x} a={:#x} b={:#x} c={} d={} {:?}", r.2, r.3, r.4, r.5, r.6, d.slice(r.0, r.1));
+    }
+    out
 }
 
 fn fail(msg: &str) -> ! {

@@ -55,7 +55,8 @@ M="$ROOT/macos"
 log "Compiling preview extension"
 compile MDQuickLookPreview -application-extension \
     -import-objc-header "$ROOT/core/include/mdql.h" \
-    "$M/Preview/main.swift" "$M/Shared/Renderer.swift" "$M/Shared/Settings.swift" "$M/Preview/PreviewProvider.swift" \
+    "$M"/Preview/*.swift "$M"/Native/*.swift "$M/Shared/Renderer.swift" "$M/Shared/Settings.swift" \
+    $(find "$M/Vendor/SwiftMath" -name '*.swift') \
     -L "$WORK/lib" -lmdql -framework QuickLookUI -framework WebKit -framework AppKit
 
 log "Compiling thumbnail extension"
@@ -79,10 +80,11 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 for ext in Preview Thumbnail; do
     appex="$APP/Contents/PlugIns/MDQuickLook$ext.appex"
-    mkdir -p "$appex/Contents/MacOS"
+    mkdir -p "$appex/Contents/MacOS" "$appex/Contents/Resources"
     plist "$M/$ext/Info.plist" "$appex/Contents/Info.plist"
     cp "$WORK/MDQuickLook$ext" "$appex/Contents/MacOS/"
 done
+cp -R "$M/Vendor/SwiftMath/mathFonts.bundle" "$APP/Contents/PlugIns/MDQuickLookPreview.appex/Contents/Resources/"
 
 # 4. Sign (inside out) -----------------------------------------------------
 log "Signing (${SIGN_IDENTITY/#-/ad-hoc})"

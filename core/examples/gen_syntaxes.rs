@@ -1,4 +1,4 @@
-//! Regenerates `assets/syntaxes.packdump`:
+//! Regenerates `assets/syntaxes.packdump` and `assets/themes.themedump`:
 //! `cargo run --release --example gen_syntaxes`
 //!
 //! Takes bat's syntax collection (via two-face) and rewrites Unicode
@@ -29,6 +29,16 @@ fn main() {
     let out = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/syntaxes.packdump");
     syntect::dumps::dump_to_uncompressed_file(&set, out).expect("write dump");
     eprintln!("{} syntaxes, rewrote {changed} of {total} patterns -> {out}", set.syntaxes().len());
+
+    // Themes for the native renderer, which colours tokens itself.
+    let themes = two_face::theme::extra();
+    let pair = (
+        themes.get(two_face::theme::EmbeddedThemeName::Github).clone(),
+        themes.get(two_face::theme::EmbeddedThemeName::OneHalfDark).clone(),
+    );
+    let out = concat!(env!("CARGO_MANIFEST_DIR"), "/assets/themes.themedump");
+    syntect::dumps::dump_to_file(&pair, out).expect("write themes");
+    eprintln!("themes -> {out}");
 }
 
 fn rewrite_context(context: &mut Context, total: &mut usize, changed: &mut usize) {

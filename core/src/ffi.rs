@@ -57,7 +57,40 @@ pub unsafe extern "C" fn mdql_render_html(
     }
 }
 
-/// Releases a buffer returned by [`mdql_render_html`].
+/// Renders Markdown into the native layout described in `mdql.h`, for
+/// drawing with TextKit instead of a web view. Same ownership rules as
+/// [`mdql_render_html`].
+///
+/// # Safety
+/// As for [`mdql_render_html`].
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mdql_render_native(
+    data: *const u8,
+    len: usize,
+    base_dir: *const c_char,
+    flags: u32,
+    out_len: *mut usize,
+) -> *mut u8 {
+    if out_len.is_null() || (data.is_null() && len != 0) {
+        return std::ptr::null_mut();
+    }
+    let bytes = if len == 0 { &[][..] } else { unsafe { std::slice::from_raw_parts(data, len) } };
+    let base_dir = unsafe { opt_str(base_dir) }.map(PathBuf::from);
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        let text = decode_text(bytes);
+        crate::native::render_native(&text, base_dir.as_deref(), flags & FLAG_REMOTE_IMAGES != 0)
+    }));
+    match result {
+        Ok(buf) => {
+            let boxed = buf.into_boxed_slice();
+            unsafe { *out_len = boxed.len() };
+            Box::into_raw(boxed) as *mut u8
+        }
+        Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// Releases a buffer returned by [`mdql_render_html`] or [`mdql_render_native`].
 ///
 /// # Safety
 /// `ptr`/`len` must come from a single successful `mdql_render_html` call.

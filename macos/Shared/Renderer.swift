@@ -21,6 +21,23 @@ enum Renderer {
         })
     }
 
+    /// Renders Markdown into the native layout (see `NativeDocument`).
+    static func native(markdown: Data, baseDirectory: URL?) -> NativeDocument? {
+        var length = 0
+        let flags: UInt32 = Settings.loadRemoteImages ? MDQL_FLAG_REMOTE_IMAGES : 0
+        let buffer: UnsafeMutablePointer<UInt8>? = markdown.withUnsafeBytes { raw in
+            let bytes = raw.bindMemory(to: UInt8.self)
+            return withOptionalCString(baseDirectory?.path) { base in
+                mdql_render_native(bytes.baseAddress, bytes.count, base, flags, &length)
+            }
+        }
+        guard let buffer else { return nil }
+        let data = Data(bytesNoCopy: buffer, count: length, deallocator: .custom { ptr, len in
+            mdql_free(ptr.assumingMemoryBound(to: UInt8.self), len)
+        })
+        return NativeDocument(data)
+    }
+
     /// Last-resort page for files the core could not render.
     static func plainTextHTML(_ data: Data, dark: Bool) -> Data {
         let text = String(decoding: data.prefix(4 * 1024 * 1024), as: UTF8.self)
