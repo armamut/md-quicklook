@@ -10,6 +10,7 @@ logic: $p \land q \implies r$, $\forall x \, \exists y$, $\therefore$, $\because
 relations: $a \leq b$, $a \leqq b$, $a \ne b$, $a \not= b$, $a \approx b$, $a \equiv b \pmod{n}$,
 arrows: $A \to B$, $A \twoheadrightarrow B$, $A \hookrightarrow B$, $f: x \mapsto x^2$,
 Greek: $\alpha, \beta, \Gamma, \varGamma, \Alpha, \varepsilon, \vartheta$,
+quantum: $\braket{\phi|\psi}$, $\Ket{\frac{1}{\sqrt 2}}$, sets: $\Set{x \in \R | x > 0}$,
 text: $\text{café}$, $\text{caf\'e}$, $a \& b$, $\checkmark$, $\blacksquare$, $\dots$.
 
 Fractions $\frac{a}{b}$, $\tfrac{1}{2}$, binomials $\binom{n}{k}$, $\dbinom{n}{k}$,

@@ -22,6 +22,8 @@ adds what KaTeX users expect:
   `\twoheadrightarrow`, `\checkmark`, `\varGamma`, `\Alpha`, …).
 - **Aliases**: `\R`, `\N`, `\Z`, `\dots`, `\argmax`, `\gt`, `\lvert`, `\bold`,
   `\Bbb`, `\operatornamewithlimits`, …
+- **Braket and set notation**: `\bra`, `\ket`, `\braket`, `\Bra`, `\Ket`, `\Braket`
+  (delimiters sized to the content), `\set`, `\Set` (the first `|` separates).
 - **Macros with arguments**: `\dbinom`, `\tbinom`, `\tag`, `\href`, `\overset`,
   `\underset`, `\stackrel`, the `\xrightarrow` family, text accents (`\'e`, `\"o`),
   `\not=`.
@@ -43,7 +45,7 @@ nothing is lost.
 
 Of the 971 formulas in KaTeX's own list of supported functions
 ([`tests/math/katex-supported.md`](../tests/math/katex-supported.md)),
-**912 (93.9%)** typeset. Every formula in
+**917 (94.4%)** typeset. Every formula in
 [`examples/math.md`](../examples/math.md) must typeset; CI checks this.
 
 [`examples/math-unsupported.md`](../examples/math-unsupported.md) lists the rest.
@@ -57,7 +59,6 @@ Open it in Quick Look to see each one as the preview draws it.
 | Rules and generalized fractions | `\rule`, `\genfrac`, `\above` |
 | User macros | `\def`, `\gdef`, `\newcommand` |
 | Commutative diagrams | `\begin{CD}` |
-| Braket notation (capitalized) | `\Bra`, `\Ket`, `\Braket`, `\Set` (`\bra`, `\ket`, `\braket` work) |
 | Symbols missing from Latin Modern Math | `\Finv`, `\Game`, `\circledS`, `\blacklozenge`, `\pitchfork`, `\lBrace`, `\rBrace`, `\minuso`, `\nleqq`, `\ngeqq`, `\lvertneqq`, `\gvertneqq`, `\nsubseteqq`, `\nsupseteqq` |
 | Web and TeX internals | `\htmlClass`, `\htmlId`, `\htmlStyle`, `\htmlData`, `\includegraphics`, `\char`, `\verb`, `\reflectbox`, `\phase`, `\angl` |
 

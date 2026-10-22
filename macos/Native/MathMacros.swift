@@ -162,6 +162,10 @@ enum MathMacros {
         "emph": (1, "\\textit{#1}"), "textup": (1, "\\textrm{#1}"), "textmd": (1, "\\textrm{#1}"),
         "textnormal": (1, "\\textrm{#1}"), "pod": (1, "\\;(#1)"),
         "tag": (1, "\\qquad\\text{(#1)}"), "tag*": (1, "\\qquad\\text{#1}"),
+        // Braket notation; the capitalized forms size their delimiters to the
+        // content. SwiftMath's own \braket takes two arguments, KaTeX's one.
+        "Bra": (1, "\\left\\langle #1\\right|"), "Ket": (1, "\\left|#1\\right\\rangle"),
+        "Braket": (1, "\\left\\langle #1\\right\\rangle"), "braket": (1, "\\langle #1\\rangle"),
     ]
 
     /// Environments SwiftMath lacks, mapped onto ones it has.
@@ -244,6 +248,13 @@ enum MathMacros {
                 var result = template
                 for (index, arg) in args.enumerated() { result = result.replacingOccurrences(of: "#\(index + 1)", with: arg) }
                 out += result
+            } else if name == "Set" || name == "set" {
+                // A set: braces, and the first top-level | as the separator.
+                var body = MathMacros.expand(argument())
+                if let bar = Self.firstSeparator(in: body) {
+                    body.replaceSubrange(bar...bar, with: "\\;\\mid\\;")
+                }
+                out += name == "Set" ? "\\left\\{\(body)\\right\\}" : "\\{\(body)\\}"
             } else if name.hasPrefix("x"), let arrow = extensibleArrows[String(name.dropFirst())] {
                 let below = optional().map { MathMacros.expand($0) }
                 let above = MathMacros.expand(argument())
@@ -282,6 +293,23 @@ enum MathMacros {
             }
             i += 1
             return negated
+        }
+
+        /// The first `|` outside braces that is not part of a command (`\|`).
+        static func firstSeparator(in latex: String) -> String.Index? {
+            var depth = 0
+            var i = latex.startIndex
+            while i < latex.endIndex {
+                let c = latex[i]
+                if c == "\\" {
+                    i = latex.index(after: i)
+                    if i < latex.endIndex { i = latex.index(after: i) }
+                    continue
+                }
+                if c == "{" { depth += 1 } else if c == "}" { depth -= 1 } else if c == "|", depth == 0 { return i }
+                i = latex.index(after: i)
+            }
+            return nil
         }
 
         func isRelation(_ latex: String) -> Bool {
