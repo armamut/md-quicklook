@@ -1,0 +1,17 @@
+# Build output
+/build/
+/core/target/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+*.xcuserstate
+xcuserdata/

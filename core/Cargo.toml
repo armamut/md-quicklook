@@ -1,0 +1,28 @@
+[package]
+name = "mdql"
+version = "1.0.0"
+description = "Fast Markdown to self-contained HTML renderer powering MD QuickLook"
+license = "MIT"
+repository = "https://github.com/armamut/md-quicklook"
+publish = false
+edition = "2024"
+
+[dependencies]
+base64 = "0.23"
+comrak = { version = "0.57", default-features = false, features = ["shortcodes"] }
+pulldown-latex = "0.8"
+syntect = { version = "5.3", default-features = false, features = ["parsing", "html", "dump-load", "regex-onig"] }
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "unwind"
+strip = "symbols"
+
+[dev-dependencies]
+two-face = { version = "0.5.2", default-features = false, features = ["syntect-onig"] }
+syntect = { version = "5.3", default-features = false, features = ["dump-create", "regex-onig", "parsing", "html"] }
