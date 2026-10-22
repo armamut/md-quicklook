@@ -10,6 +10,8 @@ MD QuickLook is MIT licensed. It builds on these projects:
 | [two-face](https://github.com/CosmicHorrorDev/two-face) / [bat](https://github.com/sharkdp/bat) | Syntax definitions (each grammar keeps its own license, see bat's repository) | MIT / Apache-2.0 |
 | [SwiftMath](https://github.com/mgriebling/SwiftMath) (vendored in `macos/Vendor/SwiftMath`, with small fixes listed in its README) | Native LaTeX math typesetting | MIT |
 | [Latin Modern Math](https://www.gust.org.pl/projects/e-foundry/lm-math) (in `mathFonts.bundle`) | Math font | GUST Font License |
+| [mermaid-rs-renderer](https://github.com/1jehuang/mermaid-rs-renderer) | Mermaid diagram layout | MIT |
+| [resvg](https://github.com/linebender/resvg) (with usvg, tiny-skia, fontdb, ttf-parser) | Drawing diagrams | Apache-2.0 / MIT (resvg, usvg, ttf-parser), MIT (fontdb), BSD-3-Clause (tiny-skia) |
 | [pulldown-latex](https://github.com/carloskiki/pulldown-latex) | LaTeX to MathML for the WebKit renderer; `core/assets/math.css` is adapted from its stylesheet | MIT |
 | [emojis](https://github.com/rossmacarthur/emojis) (via comrak) | `:shortcode:` emoji | MIT / Apache-2.0 |
 | [base64](https://github.com/marshallpierce/rust-base64) | Embedding local images | MIT / Apache-2.0 |

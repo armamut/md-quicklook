@@ -121,6 +121,8 @@ pub mod attach {
     pub const CHECKBOX_ON: u32 = 7;
     pub const CHECKBOX_OFF: u32 = 8;
     pub const RULE: u32 = 9;
+    /// Strings: Mermaid source (drawn by `mdql_render_mermaid`).
+    pub const DIAGRAM: u32 = 10;
 }
 
 const OBJECT: char = '\u{FFFC}';
@@ -446,6 +448,14 @@ impl Builder<'_> {
                 if lang.eq_ignore_ascii_case("math") {
                     self.begin_para(para::MATH, 0, 0);
                     self.attachment(attach::MATH_DISPLAY, &[cb.literal.trim_end()], 0);
+                    self.close_para();
+                    return;
+                }
+                // Diagrams that cannot be parsed stay code.
+                if lang.eq_ignore_ascii_case("mermaid") && crate::mermaid::is_diagram(&cb.literal) {
+                    self.close_para();
+                    self.begin_para(para::MATH, 0, 0);
+                    self.attachment(attach::DIAGRAM, &[&cb.literal], 0);
                     self.close_para();
                     return;
                 }
@@ -1251,6 +1261,18 @@ mod tests {
         assert_eq!(checks, vec![attach::CHECKBOX_ON, attach::CHECKBOX_OFF]);
         let depths: Vec<u32> = d.blocks.iter().filter(|b| b.0 == block::LIST_ITEM).map(|b| b.3).collect();
         assert_eq!(depths, vec![1, 1, 2, 1, 1]);
+    }
+
+    #[test]
+    fn mermaid_blocks_become_diagrams() {
+        let d = doc("```mermaid\nflowchart LR\n  A --> B\n```\n\n```mermaid\nnot a diagram\n```\n");
+        let diagrams: Vec<_> = d.runs.iter().filter(|r| r.2 & run::ATTACHMENT != 0 && r.3 == attach::DIAGRAM).collect();
+        assert_eq!(diagrams.len(), 1);
+        assert_eq!(d.strings[diagrams[0].4 as usize], "flowchart LR\n  A --> B\n");
+        assert_eq!(d.paras[0].3, para::MATH);
+        // What does not parse stays a code block.
+        assert_eq!(d.paras[1].3, para::CODE);
+        assert_eq!(para_text(&d, 1), "not a diagram\n");
     }
 
     #[test]

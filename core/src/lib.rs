@@ -19,6 +19,7 @@ use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::util::LinesWithEndings;
 
 mod ffi;
+pub mod mermaid;
 pub mod native;
 
 const BASE_CSS: &str = include_str!("../assets/style.css");

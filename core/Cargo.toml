@@ -10,6 +10,8 @@ edition = "2024"
 [dependencies]
 base64 = "0.23"
 comrak = { version = "0.57", default-features = false, features = ["shortcodes"] }
+mermaid-rs-renderer = { version = "0.3.1", default-features = false }
+resvg = { version = "0.45", default-features = false, features = ["text"] }
 pulldown-latex = "0.8"
 syntect = { version = "5.3", default-features = false, features = ["parsing", "html", "dump-load", "regex-onig"] }
 

@@ -24,6 +24,7 @@
 - **GitHub Flavored Markdown** — tables, task lists, strikethrough, autolinks, footnotes, `> [!NOTE]` alerts, heading anchors, emoji `:shortcodes:`, ==highlights==, front matter (shown as a table).
 - **Syntax highlighting** for 220 languages, GitHub-style colours in light mode and One Half Dark in dark mode.
 - **Math** — `$inline$`, `$$display$$` and ` ```math ` blocks, typeset natively with TeX-quality layout (fractions, integrals, matrices, aligned equations); [what is supported](docs/math.md).
+- **Mermaid diagrams** — ` ```mermaid ` blocks (flowchart, sequence, class, state, ER, pie, mind map, git graph and more) are drawn natively in light and dark, in the background so the document still opens instantly; see [examples/diagrams.md](examples/diagrams.md). Diagrams that cannot be drawn stay visible as source. Rendering comes from [mermaid-rs-renderer](https://github.com/1jehuang/mermaid-rs-renderer), which is young: some layouts differ from mermaid.js (Gantt dates and timelines with several events per period are known gaps).
 - **Local images** next to the file are embedded (`![](images/shot.png)`, `<img src="logo.svg">`).
 - **Badges without the network** — static shields.io badges are drawn locally in their real colours; other remote images show their description. Loading remote images can be turned on in the app.
 - **Light and dark** follow the system appearance.
@@ -67,6 +68,10 @@ make install
 ```
 
 Opening the app registers the extensions; after that it can be closed. If previews do not appear, check that *MD QuickLook* is enabled in **System Settings ▸ General ▸ Login Items & Extensions ▸ Quick Look**, then click **Reset Quick Look** in the app.
+
+## Updates
+
+Open the app and click **Check Now** (or *MD QuickLook ▸ Check for Updates…*). When a newer release exists, **Install and Relaunch** downloads it from this repository's releases, verifies it and replaces the app in place. With *Check for updates automatically* on (the default), the app also looks once a day when you open it. Only the app does this: the Quick Look extensions never use the network. Running the one-line installer again also updates.
 
 ## Uninstall
 

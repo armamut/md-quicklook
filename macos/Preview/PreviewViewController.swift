@@ -69,14 +69,14 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 let parts = renderer.parts()
                 let text = renderer.build(paragraphs: parts[0])
                 let built = start.millisecondsAgo
-                Self.watchRemoteImages(renderer, in: documentView)
+                Self.watchLateCells(renderer, in: documentView)
                 documentView.show(text, anchors: renderer.anchors)
                 handler(nil)
                 if let rest = parts.dropFirst().first {
                     DispatchQueue.global(qos: .userInitiated).async {
                         let more = renderer.build(paragraphs: rest)
                         DispatchQueue.main.async { [weak documentView] in
-                            Self.watchRemoteImages(renderer, in: documentView)
+                            Self.watchLateCells(renderer, in: documentView)
                             documentView?.append(more, anchors: renderer.anchors)
                             log.info("Rest of the document shown at \(start.millisecondsAgo, format: .fixed(precision: 1)) ms")
                         }
@@ -93,8 +93,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 }
 
 private extension PreviewViewController {
-    static func watchRemoteImages(_ renderer: NativeRenderer, in view: NativeDocumentView?) {
-        for cell in renderer.remoteCells where cell.onLoad == nil {
+    static func watchLateCells(_ renderer: NativeRenderer, in view: NativeDocumentView?) {
+        for cell in renderer.lateCells where cell.onLoad == nil {
             cell.onLoad = { [weak view] in view?.relayout() }
         }
     }

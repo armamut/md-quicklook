@@ -9,6 +9,23 @@ import AppKit
 class NativeCell: NSTextAttachmentCell {
     /// Distance from the bottom of the cell to the text baseline.
     var descent: CGFloat = 0
+    /// For cells whose content arrives later (downloads, diagrams): called
+    /// on the main thread when the cell needs layout again. Content that
+    /// arrived before anyone listened is announced when this is set.
+    var onLoad: (() -> Void)? {
+        didSet {
+            if missedLoad, let onLoad {
+                missedLoad = false
+                onLoad()
+            }
+        }
+    }
+    private var missedLoad = false
+
+    /// Main thread only.
+    func announceLoad() {
+        if let onLoad { onLoad() } else { missedLoad = true }
+    }
 
     func size(forLineWidth width: CGFloat) -> NSSize { .zero }
     func draw(in rect: NSRect) {}
@@ -129,8 +146,6 @@ final class RemoteImageCell: NativeCell {
     private let badgeLike: Bool
     private let requestedWidth: CGFloat
     private var picture: NSImage?
-    /// Called on the main thread once a downloaded image needs relayout.
-    var onLoad: (() -> Void)?
 
     init(url: String, alt: String, badgeLike: Bool, width: CGFloat, load: Bool) {
         self.url = URL(string: url.hasPrefix("//") ? "https:" + url : url)
@@ -143,7 +158,7 @@ final class RemoteImageCell: NativeCell {
                 guard let data, let image = NSImage(data: data) else { return }
                 DispatchQueue.main.async {
                     self?.picture = image
-                    self?.onLoad?()
+                    self?.announceLoad()
                 }
             }.resume()
         }
@@ -193,6 +208,90 @@ final class RemoteImageCell: NativeCell {
         box.stroke()
         let size = label.size()
         label.draw(at: NSPoint(x: rect.minX + 8, y: rect.midY - size.height / 2))
+    }
+}
+
+/// A Mermaid diagram, laid out and drawn by the core in the background (the
+/// document does not wait for it) in the theme it is shown in. A diagram the
+/// core cannot draw shows its source.
+final class DiagramCell: NativeCell {
+    private let source: String
+    private var images: [Bool: CGImage] = [:]
+    private var points: CGSize?
+    private var pending: Set<Bool> = []
+    private var failed = false
+    private lazy var fallback = NSAttributedString(string: source.trimmingCharacters(in: .newlines), attributes: [
+        .font: NativeTheme.mono(size: 12), .foregroundColor: NativeTheme.muted,
+    ])
+
+    /// Diagrams are drawn one at a time, in document order.
+    private static let queue = DispatchQueue(label: "mdql.diagrams", qos: .userInitiated)
+    private static let scale: CGFloat = 2
+
+    /// `synchronousDark`: draw now, in that theme (thumbnails, snapshots).
+    init(source: String, synchronousDark: Bool? = nil) {
+        self.source = source
+        super.init()
+        if let dark = synchronousDark {
+            store(Renderer.mermaid(source, dark: dark, scale: Self.scale), dark: dark)
+        } else {
+            request(dark: Renderer.systemTheme == MDQL_THEME_DARK)
+        }
+    }
+
+    required init(coder: NSCoder) { fatalError("not used") }
+
+    private func request(dark: Bool) {
+        guard !pending.contains(dark), images[dark] == nil, !failed else { return }
+        pending.insert(dark)
+        let source = source
+        Self.queue.async { [weak self] in
+            let result = Renderer.mermaid(source, dark: dark, scale: Self.scale)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.pending.remove(dark)
+                self.store(result, dark: dark)
+                self.announceLoad()
+            }
+        }
+    }
+
+    private func store(_ result: (image: CGImage, size: CGSize)?, dark: Bool) {
+        guard let result else {
+            failed = true
+            return
+        }
+        images[dark] = result.image
+        points = result.size
+    }
+
+    override func size(forLineWidth width: CGFloat) -> NSSize {
+        guard let points, points.width > 0 else {
+            let size = failed ? fallback.boundingRect(with: NSSize(width: width, height: 10_000),
+                                                       options: [.usesLineFragmentOrigin]).size
+                              : NSSize(width: 1, height: 40)
+            return NSSize(width: min(ceil(size.width), width), height: ceil(size.height))
+        }
+        let target = min(points.width, width)
+        return NSSize(width: target, height: (target * points.height / points.width).rounded())
+    }
+
+    override func draw(in rect: NSRect) {
+        if failed, points == nil {
+            fallback.draw(with: rect, options: [.usesLineFragmentOrigin])
+            return
+        }
+        let dark = NSAppearance.currentDrawing().isDark
+        // Draw the other theme's picture until this one is ready.
+        if images[dark] == nil { request(dark: dark) }
+        guard let image = images[dark] ?? images[!dark], let context = NSGraphicsContext.current?.cgContext else { return }
+        context.saveGState()
+        context.interpolationQuality = .high
+        // The text view is flipped; CGImage draws bottom-up.
+        context.translateBy(x: rect.minX, y: rect.maxY)
+        context.scaleBy(x: 1, y: -1)
+        context.draw(image, in: CGRect(origin: .zero, size: rect.size))
+        context.restoreGState()
     }
 }
 

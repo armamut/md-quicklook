@@ -38,7 +38,16 @@ uint8_t *mdql_render_native(const uint8_t *data, size_t len,
                             const char *base_dir, uint32_t flags,
                             size_t *out_len);
 
-/// Releases a buffer returned by mdql_render_html() or mdql_render_native().
+/// Lays out and draws a Mermaid diagram (the string of a DIAGRAM attachment)
+/// at `scale` pixels per point, dark themed when `dark` is non-zero. Returns
+/// premultiplied RGBA, *width x *height x 4 bytes (free with mdql_free()),
+/// and the diagram's size in points; NULL if it cannot be drawn.
+uint8_t *mdql_render_mermaid(const uint8_t *source, size_t len, uint32_t dark,
+                             float scale, uint32_t *width, uint32_t *height,
+                             float *points_width, float *points_height);
+
+/// Releases a buffer returned by mdql_render_html(), mdql_render_native() or
+/// mdql_render_mermaid().
 void mdql_free(uint8_t *ptr, size_t len);
 
 /// Number of languages accepted by mdql_warm_up_language().

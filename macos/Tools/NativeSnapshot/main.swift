@@ -27,7 +27,8 @@ t = Date()
 MathSupport.warmUp()
 let mathMs = Date().timeIntervalSince(t) * 1000
 t = Date()
-let renderer = NativeRenderer(document: doc, options: .init(baseDirectory: input.deletingLastPathComponent()))
+let renderer = NativeRenderer(document: doc, options: .init(baseDirectory: input.deletingLastPathComponent(),
+                                                            synchronousDiagramsDark: dark))
 let parts = renderer.parts()
 let firstPart = renderer.build(paragraphs: parts[0])
 let firstMs = Date().timeIntervalSince(t) * 1000

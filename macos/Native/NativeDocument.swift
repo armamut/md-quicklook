@@ -66,7 +66,7 @@ struct NativeDocument {
     enum AttachmentKind {
         static let image: UInt32 = 1, remoteImage: UInt32 = 2, remoteBadge: UInt32 = 3, badge: UInt32 = 4
         static let mathInline: UInt32 = 5, mathDisplay: UInt32 = 6, checkboxOn: UInt32 = 7, checkboxOff: UInt32 = 8
-        static let rule: UInt32 = 9
+        static let rule: UInt32 = 9, diagram: UInt32 = 10
     }
 
     /// The string a 1-based id refers to (0 means none).

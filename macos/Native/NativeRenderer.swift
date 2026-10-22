@@ -8,6 +8,9 @@ final class NativeRenderer {
     struct Options {
         var baseDirectory: URL?
         var loadRemoteImages = false
+        /// Draw diagrams while building, in this theme (thumbnails, snapshots);
+        /// nil draws them in the background.
+        var synchronousDiagramsDark: Bool?
     }
 
     typealias Kind = NativeDocument.ParagraphKind
@@ -20,8 +23,8 @@ final class NativeRenderer {
 
     /// Heading and footnote anchors → character index.
     private(set) var anchors: [String: Int] = [:]
-    /// Remote images that may finish loading after display.
-    private(set) var remoteCells: [RemoteImageCell] = []
+    /// Cells whose content arrives after display (remote images, diagrams).
+    private(set) var lateCells: [NativeCell] = []
 
     private lazy var text = doc.text as NSString
     private var runCursor = 0
@@ -258,6 +261,8 @@ final class NativeRenderer {
         case Kind.math, Kind.rule:
             style.alignment = p.kind == Kind.math ? .center : .natural
             style.paragraphSpacingBefore = 2
+            // A formula or diagram is the whole line: no extra leading above it.
+            if p.kind == Kind.math { style.lineHeightMultiple = 1 }
         case Kind.alertTitle, Kind.caption:
             style.paragraphSpacing = 6
         case Kind.summary:
@@ -493,7 +498,11 @@ final class NativeRenderer {
         case Attach.remoteImage, Attach.remoteBadge:
             let cell = RemoteImageCell(url: s(0), alt: s(1), badgeLike: run.a == Attach.remoteBadge,
                                        width: CGFloat(run.d), load: options.loadRemoteImages)
-            remoteCells.append(cell)
+            lateCells.append(cell)
+            return cell
+        case Attach.diagram:
+            let cell = DiagramCell(source: s(0), synchronousDark: options.synchronousDiagramsDark)
+            if options.synchronousDiagramsDark == nil { lateCells.append(cell) }
             return cell
         case Attach.badge:
             return BadgeCell(label: s(0), message: s(1), color: s(2))

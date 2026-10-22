@@ -120,3 +120,42 @@ unsafe fn opt_str<'a>(p: *const c_char) -> Option<&'a str> {
     }
     unsafe { CStr::from_ptr(p) }.to_str().ok().filter(|s| !s.is_empty())
 }
+
+/// Lays out and draws a Mermaid diagram at `scale` pixels per point, in the
+/// dark theme when `dark` is non-zero. Returns premultiplied RGBA pixels
+/// (`*width` x `*height` x 4 bytes, release with [`mdql_free`]) and the
+/// diagram's size in points, or NULL if it cannot be drawn.
+///
+/// # Safety
+/// `source` must point to `len` readable bytes; the out-pointers must be writable.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mdql_render_mermaid(
+    source: *const u8,
+    len: usize,
+    dark: u32,
+    scale: f32,
+    width: *mut u32,
+    height: *mut u32,
+    points_width: *mut f32,
+    points_height: *mut f32,
+) -> *mut u8 {
+    if source.is_null() || width.is_null() || height.is_null() || points_width.is_null() || points_height.is_null() {
+        return std::ptr::null_mut();
+    }
+    let bytes = unsafe { std::slice::from_raw_parts(source, len) };
+    let result = catch_unwind(AssertUnwindSafe(|| {
+        crate::mermaid::render(&String::from_utf8_lossy(bytes), dark != 0, scale)
+    }));
+    match result {
+        Ok(Some(bitmap)) => {
+            unsafe {
+                *width = bitmap.width;
+                *height = bitmap.height;
+                *points_width = bitmap.points.0;
+                *points_height = bitmap.points.1;
+            }
+            Box::into_raw(bitmap.rgba.into_boxed_slice()) as *mut u8
+        }
+        _ => std::ptr::null_mut(),
+    }
+}

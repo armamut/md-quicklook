@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// Swift face of the Rust rendering core (`core/include/mdql.h`).
@@ -36,6 +37,26 @@ enum Renderer {
             mdql_free(ptr.assumingMemoryBound(to: UInt8.self), len)
         })
         return NativeDocument(data)
+    }
+
+    /// Lays out and draws a Mermaid diagram; returns the bitmap and its size in points.
+    static func mermaid(_ source: String, dark: Bool, scale: CGFloat) -> (image: CGImage, size: CGSize)? {
+        var width: UInt32 = 0, height: UInt32 = 0
+        var pointsWidth: Float = 0, pointsHeight: Float = 0
+        let bytes = Array(source.utf8)
+        guard let pixels = mdql_render_mermaid(bytes, bytes.count, dark ? 1 : 0, Float(scale), &width, &height,
+                                               &pointsWidth, &pointsHeight) else { return nil }
+        let count = Int(width) * Int(height) * 4
+        let data = Data(bytesNoCopy: pixels, count: count, deallocator: .custom { ptr, len in
+            mdql_free(ptr.assumingMemoryBound(to: UInt8.self), len)
+        })
+        guard let provider = CGDataProvider(data: data as CFData),
+              let image = CGImage(width: Int(width), height: Int(height), bitsPerComponent: 8, bitsPerPixel: 32,
+                                  bytesPerRow: Int(width) * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                                  provider: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+        else { return nil }
+        return (image, CGSize(width: CGFloat(pointsWidth), height: CGFloat(pointsHeight)))
     }
 
     /// Last-resort page for files the core could not render.
