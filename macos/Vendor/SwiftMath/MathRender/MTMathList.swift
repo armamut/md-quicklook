@@ -218,6 +218,8 @@ public class MTMathAtom: NSObject {
     public func copy() -> MTMathAtom {
         switch self.type {
             case .largeOperator:
+                // md-quicklook: keep decorated operators (MTDecoration.swift) whole.
+                if let decorated = self as? MTDecoratedOperator { return MTDecoratedOperator(decorated) }
                 return MTLargeOperator(self as? MTLargeOperator)
             case .fraction:
                 return MTFraction(self as? MTFraction)

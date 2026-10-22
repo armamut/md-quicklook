@@ -1125,6 +1125,10 @@ class MTTypesetter {
     // MARK: - Large Operators
     
     func makeLargeOp(_ op:MTLargeOperator!) -> MTDisplay?  {
+        // md-quicklook: decorations (MTDecoration.swift) are drawn, then get limits as usual.
+        if let decorated = op as? MTDecoratedOperator {
+            return self.addLimitsToDisplay(self.makeDecoration(decorated), forOperator: op, delta: 0)
+        }
         // Show limits above/below in display mode
         // For inline mode, we still center limits below for operators like \lim, but with tighter spacing
         let limits = op.limits && (style == .display || style == .text)

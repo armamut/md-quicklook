@@ -10,6 +10,11 @@ with local fixes, marked `md-quicklook:` in the source:
   get their own width instead of a fixed 3mu, and neighbouring atoms get TeX's
   spacing (`\sin x`, `a, b`), which upstream applies only to binary operators
   and relations.
+- `MTDecoration.swift` (new): stretchy braces, brackets, arrows and tildes over
+  or under a formula, drawn as paths; hooked in by `MTMathListBuilder.swift`
+  (parsing), `MTMathList.swift` (copying) and `MTTypesetter.swift` (layout).
+- `MTMathAtomFactory.swift`: the accents `\mathring`, `\dddot`, `\ddddot` and
+  `\widecheck` (the last was declared wide but missing from the table).
 
 Only the Latin Modern Math font is kept (`mathFonts.bundle`, GUST Font License).
 `macos/Native/MathSupport.swift` provides the `Bundle.module` that the sources

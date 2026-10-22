@@ -28,6 +28,13 @@ adds what KaTeX users expect:
 - **Environments**: `align`, `equation`, `alignat`, `gather`, `multline`, `array`,
   `rcases`, besides SwiftMath's own `aligned`, `cases`, `split` and the
   `matrix` family.
+- **Braces, brackets and arrows over or under a formula**, drawn as vector
+  paths that stretch to any width, as KaTeX does: `\overbrace`, `\underbrace`
+  (with `^`/`_` labels above or below), `\overbracket`, `\underbracket`,
+  `\overgroup`, `\undergroup`, `\overlinesegment`, `\underlinesegment`,
+  `\Overrightarrow`, `\overleftharpoon`, `\overrightharpoon`, `\underleftarrow`,
+  `\underrightarrow`, `\underleftrightarrow`, `\utilde`; and the accents
+  `\mathring`, `\dddot`, `\ddddot`, `\widecheck`, `\underbar`.
 
 A formula that cannot be typeset is shown as red source, as KaTeX does, so
 nothing is lost.
@@ -36,7 +43,7 @@ nothing is lost.
 
 Of the 971 formulas in KaTeX's own list of supported functions
 ([`tests/math/katex-supported.md`](../tests/math/katex-supported.md)),
-**888 (91.5%)** typeset. Every formula in
+**912 (93.9%)** typeset. Every formula in
 [`examples/math.md`](../examples/math.md) must typeset; CI checks this.
 
 [`examples/math-unsupported.md`](../examples/math-unsupported.md) lists the rest.
@@ -46,10 +53,7 @@ Open it in Quick Look to see each one as the preview draws it.
 
 | What | Commands |
 |---|---|
-| Braces and brackets over or under a formula | `\overbrace`, `\underbrace`, `\overbracket`, `\underbracket`, `\overgroup`, `\undergroup` |
 | Boxes and strike-outs | `\boxed`, `\fcolorbox`, `\cancel`, `\bcancel`, `\xcancel`, `\sout` |
-| Extensible arrows and lines under or over a formula | `\underrightarrow`, `\underleftarrow`, `\underleftrightarrow`, `\overleftharpoon`, `\overrightharpoon`, `\Overrightarrow`, `\overlinesegment`, `\underlinesegment`, `\utilde`, `\underbar` |
-| Some accents | `\mathring`, `\dddot`, `\ddddot`, `\widecheck` |
 | Rules and generalized fractions | `\rule`, `\genfrac`, `\above` |
 | User macros | `\def`, `\gdef`, `\newcommand` |
 | Commutative diagrams | `\begin{CD}` |

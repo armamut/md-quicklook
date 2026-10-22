@@ -112,7 +112,12 @@ public class MTMathAtomFactory {
         "widetilde" :  "\u{0303}",
         "overleftarrow" :  "\u{20D6}",      // Combining left arrow above
         "overrightarrow" :  "\u{20D7}",     // Combining right arrow above (same as vec)
-        "overleftrightarrow" :  "\u{20E1}"  // Combining left right arrow above
+        "overleftrightarrow" :  "\u{20E1}",  // Combining left right arrow above
+        // md-quicklook: accents KaTeX has.
+        "mathring" :  "\u{030A}",
+        "dddot" :  "\u{20DB}",
+        "ddddot" :  "\u{20DC}",
+        "widecheck" :  "\u{030C}",  // listed as a wide accent below, but missing here
     ]
     
     private static let accentValueLock = NSLock()

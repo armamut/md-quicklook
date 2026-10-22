@@ -64,6 +64,21 @@ a \stackrel{\text{def}}{=} b
 $$
 
 $$
+\overbrace{1 + 2 + \cdots + n}^{n \text{ terms}} = \underbrace{\frac{n(n+1)}{2}}_{\text{Gauss}}
+\qquad
+\overbracket{AB}^{k} \; \underbracket{AB}_{k}
+\qquad
+\overgroup{AB} \; \undergroup{AB} \; \utilde{AB}
+$$
+
+$$
+\Overrightarrow{AB} \; \overleftharpoon{ac} \; \overrightharpoon{ac} \; \underleftarrow{AB} \; \underrightarrow{AB}
+\; \underleftrightarrow{AB} \; \overlinesegment{AB} \; \underlinesegment{AB}
+\qquad
+\mathring{g} \; \dddot{a} \; \ddddot{a} \; \widecheck{ac} \; \underbar{X}
+$$
+
+$$
 \nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
 \qquad
 \oint_C \mathbf{F} \cdot d\mathbf{r}

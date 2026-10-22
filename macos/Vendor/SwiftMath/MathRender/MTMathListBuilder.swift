@@ -929,6 +929,11 @@ public struct MTMathListBuilder {
             let newInner = currentInnerAtom;
             currentInnerAtom = oldInner;
             return newInner;
+        } else if let decoration = MTDecoration(rawValue: command) {
+            // md-quicklook: stretchy decorations (MTDecoration.swift).
+            let op = MTDecoratedOperator(decoration: decoration)
+            op.innerList = self.buildInternal(true)
+            return op
         } else if command == "overline" {
             // The overline command has 1 arguments
             let over = MTOverLine()

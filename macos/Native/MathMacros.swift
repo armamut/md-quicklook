@@ -132,7 +132,7 @@ enum MathMacros {
         "dotsb": "\\cdots", "dotsi": "\\cdots", "dotsm": "\\cdots",
         "gt": ">", "lt": "<", "lvert": "|", "rvert": "|", "lVert": "\\Vert", "rVert": "\\Vert", "VERT": "\\Vert",
         "bold": "\\mathbf", "Bbb": "\\mathbb", "pmb": "\\boldsymbol", "it": "\\mathit", "sf": "\\mathsf",
-        "tt": "\\mathtt", "mathscr": "\\mathcal", "mathsfit": "\\mathsf",
+        "tt": "\\mathtt", "mathscr": "\\mathcal", "mathsfit": "\\mathsf", "underbar": "\\underline",
         "operatornamewithlimits": "\\operatorname*",
         "tg": "\\operatorname{tg}", "ctg": "\\operatorname{ctg}", "cotg": "\\operatorname{cotg}",
         "arctg": "\\operatorname{arctg}", "arcctg": "\\operatorname{arcctg}", "cosec": "\\operatorname{cosec}",
