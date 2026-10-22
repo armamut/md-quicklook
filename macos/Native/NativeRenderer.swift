@@ -86,7 +86,8 @@ final class NativeRenderer {
             guard r.location >= 0, NSMaxRange(r) <= length else { continue }
             let context = paragraphContext(p)
             var attributes: [NSAttributedString.Key: Any] = [
-                .paragraphStyle: paragraphStyle(p, context: context, first: index == 0),
+                .paragraphStyle: paragraphStyle(p, context: context, first: index == 0,
+                                                afterTable: index > 0 && doc.paragraphs[index - 1].kind == Kind.tableCell),
                 .font: context.font,
             ]
             if let color = context.color { attributes[.foregroundColor] = color }
@@ -126,6 +127,7 @@ final class NativeRenderer {
             guard let table = tables[tableID] else { continue }
             let frontMatter = doc.blocks[tableID].flags & Block.frontMatterTable != 0
             var widths = Array(repeating: CGFloat(0), count: table.numberOfColumns)
+            let padding: CGFloat = frontMatter ? 32 : 30
             for cell in cells where cell.column < widths.count {
                 var range = NSRange(location: cell.range.location - offset, length: cell.range.length)
                 if range.length > 0 { range.length -= 1 } // trailing newline
@@ -135,13 +137,13 @@ final class NativeRenderer {
                 content.removeAttribute(.paragraphStyle, range: NSRange(location: 0, length: content.length))
                 let natural = content.boundingRect(with: NSSize(width: 10_000, height: 10_000),
                                                    options: [.usesLineFragmentOrigin]).width
-                let padding: CGFloat = frontMatter ? 32 : 30
                 widths[cell.column] = max(widths[cell.column], min(ceil(natural) + padding, 420))
             }
             if frontMatter {
                 // Keys take what they need; values the rest of the full-width box.
+                // The width is the content width: the cell's padding comes on top.
                 for cell in cells where cell.column == 0 {
-                    cell.cell.setValue(widths[0], type: .absoluteValueType, for: .width)
+                    cell.cell.setValue(max(1, widths[0] - padding + 2), type: .absoluteValueType, for: .width)
                 }
                 continue
             }
@@ -150,9 +152,9 @@ final class NativeRenderer {
             table.setValue(total, type: .absoluteValueType, for: .width)
             table.setValue(100, type: .percentageValueType, for: .maximumWidth)
             // A block's width is its content width, padding and border excluded.
-            let padding: CGFloat = 27
+            let cellPadding: CGFloat = 27
             for cell in cells where cell.column < widths.count {
-                cell.cell.setValue(max(1, widths[cell.column] - padding) / total * 100, type: .percentageValueType,
+                cell.cell.setValue(max(1, widths[cell.column] - cellPadding) / total * 100, type: .percentageValueType,
                                    for: .width)
             }
         }
@@ -214,7 +216,8 @@ final class NativeRenderer {
         return context
     }
 
-    private func paragraphStyle(_ p: NativeDocument.Paragraph, context: Context, first: Bool) -> NSParagraphStyle {
+    private func paragraphStyle(_ p: NativeDocument.Paragraph, context: Context, first: Bool,
+                                afterTable: Bool) -> NSParagraphStyle {
         let style = NSMutableParagraphStyle()
         style.lineHeightMultiple = NativeTheme.lineHeightMultiple
         style.paragraphSpacing = context.tight && context.listDepth > 0 ? 4 : NativeTheme.paragraphSpacing
@@ -269,6 +272,8 @@ final class NativeRenderer {
             case 3: style.alignment = .right
             default: break
             }
+            // TextKit 1 ignores a table's bottom margin: space the next paragraph.
+            if afterTable { style.paragraphSpacingBefore = max(style.paragraphSpacingBefore, NativeTheme.paragraphSpacing) }
         }
         return style
     }
