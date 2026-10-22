@@ -5,10 +5,11 @@ import Foundation
 enum Settings {
     static let previewExtensionID = "io.github.armamut.mdquicklook.preview"
     private static let remoteImagesKey = "LoadRemoteImages"
+    private static let webRendererKey = "UseWebRenderer"
 
     /// Use the WebKit renderer instead of the native one.
     static var useWebRenderer: Bool {
-        UserDefaults.standard.bool(forKey: "UseWebRenderer")
+        UserDefaults.standard.bool(forKey: webRendererKey)
     }
 
     /// Load http(s) images such as README badges. Off by default for privacy.
@@ -25,15 +26,24 @@ enum Settings {
         return container.appendingPathComponent(previewExtensionID).path as CFString
     }
 
-    static func previewLoadsRemoteImages() -> Bool {
-        guard let domain = previewDomain else { return false }
-        return CFPreferencesCopyAppValue(remoteImagesKey as CFString, domain) as? Bool ?? false
-    }
+    static func previewLoadsRemoteImages() -> Bool { previewValue(remoteImagesKey) }
 
     @discardableResult
-    static func setPreviewLoadsRemoteImages(_ enabled: Bool) -> Bool {
+    static func setPreviewLoadsRemoteImages(_ enabled: Bool) -> Bool { setPreviewValue(remoteImagesKey, enabled) }
+
+    static func previewUsesWebRenderer() -> Bool { previewValue(webRendererKey) }
+
+    @discardableResult
+    static func setPreviewUsesWebRenderer(_ enabled: Bool) -> Bool { setPreviewValue(webRendererKey, enabled) }
+
+    private static func previewValue(_ key: String) -> Bool {
         guard let domain = previewDomain else { return false }
-        CFPreferencesSetAppValue(remoteImagesKey as CFString, enabled as CFBoolean, domain)
+        return CFPreferencesCopyAppValue(key as CFString, domain) as? Bool ?? false
+    }
+
+    private static func setPreviewValue(_ key: String, _ enabled: Bool) -> Bool {
+        guard let domain = previewDomain else { return false }
+        CFPreferencesSetAppValue(key as CFString, enabled as CFBoolean, domain)
         return CFPreferencesAppSynchronize(domain)
     }
 }

@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     private var window: NSWindow!
     private var statusLabel: NSTextField!
     private var remoteImagesCheckbox: NSButton!
+    private var webRendererCheckbox: NSButton!
     private var previewURL: URL?
 
     private let previewExtensionID = "io.github.armamut.mdquicklook.preview"
@@ -50,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         }
         statusLabel.stringValue = lines.joined(separator: "\n")
         remoteImagesCheckbox.state = Settings.previewLoadsRemoteImages() ? .on : .off
+        webRendererCheckbox.state = Settings.previewUsesWebRenderer() ? .on : .off
     }
 
     /// Reads `pluginkit -m` output: "+" enabled, "-" disabled, "!" debug, "=" superseded.
@@ -108,13 +110,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     @objc private func toggleRemoteImages(_ sender: NSButton) {
         guard Settings.setPreviewLoadsRemoteImages(sender.state == .on) else {
             sender.state = .off
-            let alert = NSAlert()
-            alert.messageText = "Preview a Markdown file first"
-            alert.informativeText = "macOS sets up the preview extension the first time it runs. " +
-                "Press Space on any .md file in Finder, then change this setting."
-            alert.beginSheetModal(for: window)
+            showFirstPreviewNeeded()
             return
         }
+    }
+
+    @objc private func toggleWebRenderer(_ sender: NSButton) {
+        guard Settings.setPreviewUsesWebRenderer(sender.state == .on) else {
+            sender.state = .off
+            showFirstPreviewNeeded()
+            return
+        }
+        // The extension reads this when it launches; restart it.
+        resetQuickLookServices()
+    }
+
+    private func showFirstPreviewNeeded() {
+        let alert = NSAlert()
+        alert.messageText = "Preview a Markdown file first"
+        alert.informativeText = "macOS sets up the preview extension the first time it runs. " +
+            "Press Space on any .md file in Finder, then change this setting."
+        alert.beginSheetModal(for: window)
     }
 
     @objc private func resetQuickLook() {
@@ -150,7 +166,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     // MARK: UI
 
     private func buildWindow() {
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 420),
+        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 520, height: 450),
                           styleMask: [.titled, .closable, .miniaturizable],
                           backing: .buffered, defer: false)
         window.title = "MD QuickLook"
@@ -179,6 +195,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
 
         remoteImagesCheckbox = NSButton(checkboxWithTitle: "Load remote images (badges, screenshots)",
                                         target: self, action: #selector(toggleRemoteImages(_:)))
+        webRendererCheckbox = NSButton(checkboxWithTitle: "Use the WebKit renderer (slower to open)",
+                                       target: self, action: #selector(toggleWebRenderer(_:)))
         let remoteNote = NSTextField(wrappingLabelWithString:
             "Off by default: previewing a file never contacts the internet. " +
             "When off, badges are drawn locally and other images show their description.")
@@ -194,7 +212,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         ])
         buttons.spacing = 8
 
-        let stack = NSStackView(views: [icon, title, help, statusLabel, remoteImagesCheckbox, remoteNote, buttons])
+        let stack = NSStackView(views: [icon, title, help, statusLabel, remoteImagesCheckbox, remoteNote,
+                                        webRendererCheckbox, buttons])
         stack.orientation = .vertical
         stack.alignment = .centerX
         stack.spacing = 14

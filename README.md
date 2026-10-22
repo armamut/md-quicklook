@@ -23,22 +23,26 @@
 - **Works everywhere Quick Look does** — the space-bar panel, Finder's preview pane and the column view, using the full width available.
 - **GitHub Flavored Markdown** — tables, task lists, strikethrough, autolinks, footnotes, `> [!NOTE]` alerts, heading anchors, emoji `:shortcodes:`, ==highlights==, front matter (shown as a table).
 - **Syntax highlighting** for 220 languages, GitHub-style colours in light mode and One Half Dark in dark mode.
-- **Math** — `$inline$`, `$$display$$` and ` ```math ` blocks, rendered as native MathML.
+- **Math** — `$inline$`, `$$display$$` and ` ```math ` blocks, typeset natively with TeX-quality layout (fractions, integrals, matrices, aligned equations).
 - **Local images** next to the file are embedded (`![](images/shot.png)`, `<img src="logo.svg">`).
 - **Badges without the network** — static shields.io badges are drawn locally in their real colours; other remote images show their description. Loading remote images can be turned on in the app.
 - **Light and dark** follow the system appearance.
 - **Clickable links** — headings scroll, links to other Markdown files open them.
-- **Finder thumbnails** — icons show a miniature of the document.
-- **Private by design** — no JavaScript, no network requests, strict Content-Security-Policy, sandboxed.
+- **Finder thumbnails** — icons show a miniature of the rendered page.
+- **Private by design** — no web engine, no JavaScript, no network requests, sandboxed.
 
 ## Fast
 
-The renderer is written in Rust ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) and turns a typical README into HTML in about **1 ms**; a 900 KB changelog takes ~30 ms.
+There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) parses the Markdown into a compact layout, and the Swift extension draws it with TextKit, the text system behind every Mac app. Math is typeset with [SwiftMath](https://github.com/mgriebling/SwiftMath).
 
-Two things usually make previews slow, and both are handled ahead of time:
+| | Native (default) | WebKit (optional) |
+|---|---|---|
+| Typical README, request → ready | **~30 ms** | ~200 ms |
+| 900 KB changelog, first screen | **~60 ms** | ~300 ms |
 
-- **Regex compilation for highlighting.** Grammars are pre-processed at build time so Oniguruma compiles them 3–5× faster (TypeScript: 45 → 13 ms, C++: 15 → 3 ms on first use), and common languages are compiled in the background on all cores while macOS is still launching the extension.
-- **WebKit start-up.** A web view and its helper processes are warmed up during launch, and a spare one is kept ready for the next preview.
+- **Long documents** show their first screenful immediately; the rest is laid out in the background.
+- **Syntax highlighting** grammars are pre-processed at build time so their regexes compile 3–5× faster, and common languages are compiled on all cores while macOS launches the extension.
+- **Light and dark** colours, including code, switch instantly with the system appearance.
 
 ## Install
 
@@ -73,18 +77,20 @@ make uninstall    # or drag the app to the Trash
 ## How it works
 
 ```
-core/      Rust renderer: Markdown → self-contained HTML (static library + `mdql` CLI)
-macos/     Swift: host app, preview extension (WKWebView), thumbnail extension
+core/      Rust: Markdown → native layout or HTML (static library + `mdql` CLI)
+macos/     Swift: host app, preview and thumbnail extensions, native renderer
+           (macos/Native), vendored SwiftMath (macos/Vendor)
 scripts/   build.sh (Xcode-free build), install.sh, icon and screenshot helpers
 ```
 
-The preview extension reads the file, calls the Rust core through a small C API (`core/include/mdql.h`) and shows the result in a sandboxed web view with JavaScript disabled. Local images are embedded as `data:` URIs, so the page never needs file or network access.
+The extensions read the file and call the Rust core through a small C API (`core/include/mdql.h`). `mdql_render_native` returns a binary layout — text plus blocks, paragraphs and styled runs — that `macos/Native` turns into an attributed string with text blocks (quotes, alerts, code), tables and attachment cells (images, formulas, badges, checkboxes). `mdql_render_html` produces a self-contained HTML page for the optional WebKit renderer, which can be chosen in the app.
 
 Useful while developing:
 
 ```sh
 make test                                   # Rust tests
 make bench                                  # render timing
+make snapshot-tool && build/native-snapshot README.md out.png dark   # native render → PNG
 core/target/release/mdql README.md -o out.html --theme dark
 log stream --predicate 'subsystem == "io.github.armamut.mdquicklook"'   # extension timings
 ```
