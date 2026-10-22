@@ -38,6 +38,8 @@ reset:            ## Make Quick Look pick up changes
 	@qlmanage -r cache >/dev/null 2>&1 || true
 	@pkill -f '^$(THUMBNAILS_AGENT)' 2>/dev/null || true
 	@pkill -f '^$(QL_UI_SERVICE)' 2>/dev/null || true
+	@# Running extensions keep their old code after an install: stop them too.
+	@pkill -f '^/.*/MDQuickLook(Preview|Thumbnail)[.]appex/Contents/MacOS/MDQuickLook(Preview|Thumbnail)( |$$)' 2>/dev/null || true
 
 test:             ## Run the Rust core tests
 	cargo test --manifest-path core/Cargo.toml

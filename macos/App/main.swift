@@ -261,6 +261,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         // an unanchored pattern could hit unrelated processes.
         run("/usr/bin/pkill", ["-f", "^/System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent"])
         run("/usr/bin/pkill", ["-f", "^/System/Library/Frameworks/QuickLookUI.framework/Versions/A/XPCServices/QuickLookUIService.xpc/"])
+        // Our own extensions keep running their old code after an update.
+        let plugins = NSRegularExpression.escapedPattern(for: Bundle.main.bundlePath + "/Contents/PlugIns/")
+        run("/usr/bin/pkill", ["-f", "^\(plugins)MDQuickLook(Preview|Thumbnail)[.]appex/"])
     }
 
     private func showPreview(_ url: URL) {
