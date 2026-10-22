@@ -83,12 +83,12 @@ make uninstall    # or drag the app to the Trash
 
 ```
 core/      Rust: Markdown → native layout or HTML (static library + `mdql` CLI)
-macos/     Swift: host app, preview and thumbnail extensions, native renderer
-           (macos/Native), vendored SwiftMath (macos/Vendor)
+macos/     Swift: host app (with the updater), preview and thumbnail extensions,
+           native renderer (macos/Native), vendored SwiftMath (macos/Vendor)
 scripts/   build.sh (Xcode-free build), install.sh, icon and screenshot helpers
 ```
 
-The extensions read the file and call the Rust core through a small C API (`core/include/mdql.h`). `mdql_render_native` returns a binary layout — text plus blocks, paragraphs and styled runs — that `macos/Native` turns into an attributed string with text blocks (quotes, alerts, code), tables and attachment cells (images, formulas, badges, checkboxes). `mdql_render_html` produces a self-contained HTML page for the optional WebKit renderer, which can be chosen in the app.
+The extensions read the file and call the Rust core through a small C API (`core/include/mdql.h`). `mdql_render_native` returns a binary layout — text plus blocks, paragraphs and styled runs — that `macos/Native` turns into an attributed string with text blocks (quotes, alerts, code), tables and attachment cells (images, formulas, diagrams, badges, checkboxes); `mdql_render_mermaid` draws a diagram. Both extensions share one library with all this code (`Contents/Frameworks/libMDQuickLookCore.dylib`); their own executables only start it (`macos/Launchers`). `mdql_render_html` produces a self-contained HTML page for the optional WebKit renderer, which can be chosen in the app.
 
 Useful while developing:
 
@@ -96,6 +96,7 @@ Useful while developing:
 make test                                   # Rust tests
 make bench                                  # render timing
 make snapshot-tool && build/native-snapshot README.md out.png dark   # native render → PNG
+build/math-coverage notes.md --list         # formulas that do not typeset
 core/target/release/mdql README.md -o out.html --theme dark
 log stream --predicate 'subsystem == "io.github.armamut.mdquicklook"'   # extension timings
 ```

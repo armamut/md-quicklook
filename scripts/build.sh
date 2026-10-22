@@ -52,19 +52,33 @@ compile() {
 }
 
 M="$ROOT/macos"
-log "Compiling preview extension"
-compile MDQuickLookPreview -application-extension \
-    -import-objc-header "$ROOT/core/include/mdql.h" \
-    "$M"/Preview/*.swift "$M"/Native/*.swift "$M/Shared/Renderer.swift" "$M/Shared/Settings.swift" \
-    $(find "$M/Vendor/SwiftMath" -name '*.swift') \
-    -L "$WORK/lib" -lmdql -framework QuickLookUI -framework WebKit -framework AppKit
+CORE=libMDQuickLookCore.dylib
+# Both extensions share one library with all their code (Rust core, native
+# renderer, SwiftMath), in the app's Frameworks folder; their executables
+# only call into it, and macOS finds their principal classes there by name.
+log "Compiling shared library"
+slices=()
+for arch in $ARCHS; do
+    swiftc -O -whole-module-optimization -swift-version 5 -application-extension \
+        -sdk "$SDK" -target "$arch-apple-macos$MIN_MACOS" \
+        -module-name MDQuickLookCore -emit-library -o "$WORK/$CORE-$arch" \
+        -Xlinker -install_name -Xlinker "@rpath/$CORE" \
+        -import-objc-header "$ROOT/core/include/mdql.h" \
+        "$M/Preview/Launch.swift" "$M/Preview/PreviewViewController.swift" "$M/Preview/WebPreview.swift" \
+        "$M/Thumbnail/ThumbnailProvider.swift" "$M"/Native/*.swift "$M/Shared/Renderer.swift" \
+        "$M/Shared/Settings.swift" $(find "$M/Vendor/SwiftMath" -name '*.swift') \
+        -L "$WORK/lib" -lmdql -framework QuickLookUI -framework QuickLookThumbnailing -framework WebKit \
+        -framework AppKit
+    slices+=("$WORK/$CORE-$arch")
+done
+lipo -create "${slices[@]}" -output "$WORK/$CORE"
 
+launcher=(-application-extension -L "$WORK" -lMDQuickLookCore -Xlinker -rpath -Xlinker @executable_path/../../../../Frameworks)
+log "Compiling preview extension"
+compile MDQuickLookPreview "${launcher[@]}" -import-objc-header "$M/Launchers/MDQuickLookCore.h" \
+    "$M/Launchers/Preview/main.swift"
 log "Compiling thumbnail extension"
-compile MDQuickLookThumbnail -application-extension -parse-as-library \
-    -import-objc-header "$ROOT/core/include/mdql.h" \
-    "$M/Thumbnail/ThumbnailProvider.swift" "$M"/Native/*.swift "$M/Shared/Renderer.swift" "$M/Shared/Settings.swift" \
-    $(find "$M/Vendor/SwiftMath" -name '*.swift') \
-    -L "$WORK/lib" -lmdql -framework QuickLookThumbnailing -framework AppKit \
+compile MDQuickLookThumbnail "${launcher[@]}" -parse-as-library "$M/Launchers/Thumbnail/main.swift" \
     -Xlinker -e -Xlinker _NSExtensionMain
 
 log "Compiling host app"
@@ -89,14 +103,24 @@ done
 for ext in Preview Thumbnail; do
     cp -R "$M/Vendor/SwiftMath/mathFonts.bundle" "$APP/Contents/PlugIns/MDQuickLook$ext.appex/Contents/Resources/"
 done
+mkdir -p "$APP/Contents/Frameworks"
+cp "$WORK/$CORE" "$APP/Contents/Frameworks/"
 
 # 4. Sign (inside out) -----------------------------------------------------
 log "Signing (${SIGN_IDENTITY/#-/ad-hoc})"
 sign_flags=(--force --sign "$SIGN_IDENTITY" --options runtime)
 [ "$SIGN_IDENTITY" != "-" ] && sign_flags+=(--timestamp)
+codesign "${sign_flags[@]}" "$APP/Contents/Frameworks/$CORE"
 for ext in Preview Thumbnail; do
-    codesign "${sign_flags[@]}" --entitlements "$M/$ext/$ext.entitlements" \
-        "$APP/Contents/PlugIns/MDQuickLook$ext.appex"
+    entitlements="$M/$ext/$ext.entitlements"
+    if [ "$SIGN_IDENTITY" = "-" ]; then
+        # Ad-hoc signatures carry no team, so library validation would refuse
+        # the shared library; a Developer ID signature shares its team instead.
+        entitlements="$WORK/$ext.entitlements"
+        cp "$M/$ext/$ext.entitlements" "$entitlements"
+        /usr/libexec/PlistBuddy -c "Add :com.apple.security.cs.disable-library-validation bool true" "$entitlements"
+    fi
+    codesign "${sign_flags[@]}" --entitlements "$entitlements" "$APP/Contents/PlugIns/MDQuickLook$ext.appex"
 done
 codesign "${sign_flags[@]}" --entitlements "$M/App/App.entitlements" "$APP"
 codesign --verify --deep --strict "$APP"

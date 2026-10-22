@@ -1,12 +1,12 @@
 import Foundation
 
 /// SwiftMath (vendored in `macos/Vendor/SwiftMath`) expects Swift Package
-/// Manager's `Bundle.module`; its fonts live in our bundle's resources
-/// (`mathFonts.bundle`), next to the executable for command-line tools.
-private final class BundleAnchor {}
-
+/// Manager's `Bundle.module`; its fonts (`mathFonts.bundle`) are in each
+/// extension's resources, and next to the executable for command-line tools.
+/// (This code runs from a shared library, so it is the main bundle that
+/// holds them, not the code's own location.)
 extension Foundation.Bundle {
-    static let module: Bundle = Bundle(for: BundleAnchor.self)
+    static let module: Bundle = .main
 }
 
 enum MathSupport {
