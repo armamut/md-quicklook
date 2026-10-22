@@ -7,7 +7,7 @@ LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/Launc
 THUMBNAILS_AGENT := /System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
 QL_UI_SERVICE := /System/Library/Frameworks/QuickLookUI.framework/Versions/A/XPCServices/QuickLookUIService.xpc/Contents/MacOS/QuickLookUIService
 
-.PHONY: all build native install uninstall reset test bench release clean snapshot-tool math-coverage
+.PHONY: all build native install uninstall reset test bench release clean snapshot-tool math-coverage math-report
 
 all: build
 
@@ -53,7 +53,10 @@ snapshot-tool:    ## Dev tools: build/native-snapshot (Markdown to PNG), build/m
 	scripts/build-snapshot-tool.sh
 
 math-coverage: snapshot-tool  ## Check that every formula in the examples typesets
-	build/math-coverage examples/*.md --list --min 100
+	build/math-coverage examples/math.md examples/showcase.md --list --min 100
+
+math-report: snapshot-tool    ## Regenerate examples/math-unsupported.md from KaTeX's reference
+	build/math-coverage tests/math/katex-supported.md --report examples/math-unsupported.md
 
 clean:
 	rm -rf build

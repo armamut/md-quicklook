@@ -13,5 +13,6 @@ MD QuickLook is MIT licensed. It builds on these projects:
 | [pulldown-latex](https://github.com/carloskiki/pulldown-latex) | LaTeX to MathML for the WebKit renderer; `core/assets/math.css` is adapted from its stylesheet | MIT |
 | [emojis](https://github.com/rossmacarthur/emojis) (via comrak) | `:shortcode:` emoji | MIT / Apache-2.0 |
 | [base64](https://github.com/marshallpierce/rust-base64) | Embedding local images | MIT / Apache-2.0 |
+| [KaTeX](https://github.com/KaTeX/KaTeX) | `tests/math/katex-supported.md` is KaTeX's `docs/supported.md` (commit `6ea2dc9`), used as a math test corpus; not shipped in the app | MIT |
 
 The highlighting colours come from the GitHub and One Half Dark themes shipped with bat.

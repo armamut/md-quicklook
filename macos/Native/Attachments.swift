@@ -66,9 +66,11 @@ final class MathCell: NativeCell {
 
     override func size(forLineWidth width: CGFloat) -> NSSize {
         guard let typeset else {
-            let size = fallback.size()
+            // Long source wraps within the line instead of being cut off.
+            let size = fallback.boundingRect(with: NSSize(width: width, height: 10_000),
+                                             options: [.usesLineFragmentOrigin]).size
             descent = 3
-            return NSSize(width: min(size.width, width), height: size.height)
+            return NSSize(width: min(ceil(size.width), width), height: ceil(size.height))
         }
         descent = typeset.descent
         return NSSize(width: ceil(typeset.width), height: ceil(typeset.ascent + typeset.descent))
@@ -76,7 +78,7 @@ final class MathCell: NativeCell {
 
     override func draw(in rect: NSRect) {
         guard let typeset, let context = NSGraphicsContext.current?.cgContext else {
-            fallback.draw(in: rect)
+            fallback.draw(with: rect, options: [.usesLineFragmentOrigin])
             return
         }
         typeset.textColor = NativeTheme.fg.resolved()

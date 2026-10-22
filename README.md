@@ -23,7 +23,7 @@
 - **Works everywhere Quick Look does** — the space-bar panel, Finder's preview pane and the column view, using the full width available.
 - **GitHub Flavored Markdown** — tables, task lists, strikethrough, autolinks, footnotes, `> [!NOTE]` alerts, heading anchors, emoji `:shortcodes:`, ==highlights==, front matter (shown as a table).
 - **Syntax highlighting** for 220 languages, GitHub-style colours in light mode and One Half Dark in dark mode.
-- **Math** — `$inline$`, `$$display$$` and ` ```math ` blocks, typeset natively with TeX-quality layout (fractions, integrals, matrices, aligned equations).
+- **Math** — `$inline$`, `$$display$$` and ` ```math ` blocks, typeset natively with TeX-quality layout (fractions, integrals, matrices, aligned equations); [what is supported](docs/math.md).
 - **Local images** next to the file are embedded (`![](images/shot.png)`, `<img src="logo.svg">`).
 - **Badges without the network** — static shields.io badges are drawn locally in their real colours; other remote images show their description. Loading remote images can be turned on in the app.
 - **Light and dark** follow the system appearance.
@@ -33,7 +33,7 @@
 
 ## Fast
 
-There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) parses the Markdown into a compact layout, and the Swift extension draws it with TextKit, the text system behind every Mac app. Math is typeset with [SwiftMath](https://github.com/mgriebling/SwiftMath), extended with KaTeX symbols, aliases and environments (see [examples/math.md](examples/math.md)).
+There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak) + [syntect](https://github.com/trishume/syntect)) parses the Markdown into a compact layout, and the Swift extension draws it with TextKit, the text system behind every Mac app. Math is typeset with [SwiftMath](https://github.com/mgriebling/SwiftMath), extended with KaTeX symbols, aliases and environments; see [docs/math.md](docs/math.md) for what is supported.
 
 | | Native (default) | WebKit (optional) |
 |---|---|---|
