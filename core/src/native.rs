@@ -735,7 +735,7 @@ impl Builder<'_> {
             // Never show the contents of scripts and styles.
             if let Some(tag) = ["script", "style", "title", "noscript", "template"]
                 .into_iter()
-                .find(|t| rest.len() > t.len() + 1 && rest[1..=t.len()].eq_ignore_ascii_case(t))
+                .find(|t| rest.as_bytes().get(1..=t.len()).is_some_and(|b| b.eq_ignore_ascii_case(t.as_bytes())))
             {
                 let close = format!("</{tag}");
                 rest = find_ascii_ci(rest, &close)
@@ -976,7 +976,7 @@ fn decode_html_entities(s: &str) -> std::borrow::Cow<'_, str> {
     while let Some(amp) = rest.find('&') {
         out.push_str(&rest[..amp]);
         rest = &rest[amp..];
-        let Some(semi) = rest[..rest.len().min(12)].find(';') else {
+        let Some(semi) = rest.bytes().take(12).position(|b| b == b';') else {
             out.push('&');
             rest = &rest[1..];
             continue;
@@ -1326,6 +1326,42 @@ mod tests {
         let d2 = doc("- a\n- b\n\nx[^1] y[^2]\n\n[^1]: one\n[^2]: two\n");
         assert!(d2.text.contains("1.\tone\n") && d2.text.contains("2.\ttwo\n"), "footnotes numbered on their own");
         assert!(d.strings.iter().any(|s| s == "#fn-n"));
+    }
+
+    /// Random documents assembled from tricky fragments must never panic and
+    /// must always produce a well-formed layout.
+    #[test]
+    fn survives_random_documents() {
+        const PIECES: &[&str] = &[
+            "# ", "## ", "- ", "1. ", "> ", "> [!NOTE]\n", "```rust\n", "```\n", "```math\n", "|a|b|\n|-|-|\n", "| x |",
+            "**", "*", "_", "`", "~~", "==", "[link](", ")", "![img](", "https://x.y/z.png", "<", ">", "</", "<br>",
+            "<img src=\"a.png\" alt=\"•\">", "<div align=\"center\">", "</div>", "<details>", "<summary>",
+            "</summary>", "</details>", "<script>", "</script>", "<!--", "-->", "&amp;", "&#x1F600;", "&nbsp;", "&",
+            "$", "$$", "\\frac{1}{2}", "[^1]", "[^1]: note\n", "---\n", "\n", "\n\n", "  ", "\t", "•", "😀", "ğüşİ",
+            "日本語", "\u{200d}", "é", "<kbd>", "</kbd>", "<a href=\"#x\">", "</a>", "- [x] ", "- [ ] ", "[[wiki]]",
+            ":rocket:", "\\", "text ", "word",
+        ];
+        let mut seed: u64 = 0x2545_f491_4f6c_dd1d;
+        for _ in 0..3000 {
+            let mut md = String::new();
+            for _ in 0..(seed % 40) {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                md.push_str(PIECES[(seed % PIECES.len() as u64) as usize]);
+            }
+            // The HTML renderer sees the same inputs.
+            let _ = crate::render_document(&md, &crate::RenderOptions::default());
+            let bytes = render_native(&md, None, false);
+            let d = Decoded::parse(&bytes).unwrap_or_else(|| panic!("malformed layout for {md:?}"));
+            let total = d.text.encode_utf16().count() as u32;
+            for p in &d.paras {
+                assert!(p.0 + p.1 <= total, "paragraph out of range for {md:?}");
+            }
+            for r in &d.runs {
+                assert!(r.0 + r.1 <= total, "run out of range for {md:?}");
+            }
+        }
     }
 
     #[test]

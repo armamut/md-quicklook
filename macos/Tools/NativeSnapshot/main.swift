@@ -49,7 +49,11 @@ let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: width, height: 800)
 window.appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
 let view = NativeDocumentView(frame: window.contentView!.bounds)
 view.autoresizingMask = [.width, .height]
-window.contentView!.addSubview(view)
+if ProcessInfo.processInfo.environment["MDQL_NO_WINDOW"] == nil {
+    window.contentView!.addSubview(view)
+} else {
+    view.appearance = window.appearance
+}
 t = Date()
 view.show(text, anchors: renderer.anchors)
 let layoutManager = view.textView.layoutManager!

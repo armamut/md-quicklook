@@ -3,6 +3,9 @@ BUILD_APP  := build/$(APP_NAME)
 INSTALL_DIR ?= /Applications
 VERSION    := $(shell tr -d '[:space:]' < VERSION)
 LSREGISTER := /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+# Quick Look helpers, matched by full path (their process names are truncated).
+THUMBNAILS_AGENT := /System/Library/Frameworks/QuickLookThumbnailing.framework/Support/com.apple.quicklook.ThumbnailsAgent
+QL_UI_SERVICE := /System/Library/Frameworks/QuickLookUI.framework/Versions/A/XPCServices/QuickLookUIService.xpc/Contents/MacOS/QuickLookUIService
 
 .PHONY: all build native install uninstall reset test bench release clean snapshot-tool
 
@@ -33,7 +36,8 @@ uninstall:        ## Remove the app and its extensions
 reset:            ## Make Quick Look pick up changes
 	@qlmanage -r >/dev/null 2>&1 || true
 	@qlmanage -r cache >/dev/null 2>&1 || true
-	@killall com.apple.quicklook.ThumbnailsAgent QuickLookUIService 2>/dev/null || true
+	@pkill -f '^$(THUMBNAILS_AGENT)' 2>/dev/null || true
+	@pkill -f '^$(QL_UI_SERVICE)' 2>/dev/null || true
 
 test:             ## Run the Rust core tests
 	cargo test --manifest-path core/Cargo.toml
