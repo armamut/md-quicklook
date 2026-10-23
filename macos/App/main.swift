@@ -13,6 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     private let updater = Updater()
     private var progressSheet: NSWindow?
     private var progressBar: NSProgressIndicator?
+    /// A file macOS asked us to open before launching finished.
+    private var pendingFile: URL?
+    private var launched = false
 
     private let previewExtensionID = "io.github.armamut.mdquicklook.preview"
     private let thumbnailExtensionID = "io.github.armamut.mdquicklook.thumbnail"
@@ -21,7 +24,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         buildMenu()
         buildWindow()
         registerExtensions()
+        launched = true
         NSApp.activate(ignoringOtherApps: true)
+        // Shown only now: registering may restart the preview extension.
+        if let file = pendingFile { showPreview(file) }
         // `open -a "MD QuickLook" --args -UpdateWithoutAsking YES` updates unattended (scripts, testing).
         if UserDefaults.standard.bool(forKey: "UpdateWithoutAsking") {
             updater.check { result in
@@ -35,7 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
-        showPreview(URL(fileURLWithPath: filename))
+        let url = URL(fileURLWithPath: filename)
+        if launched { showPreview(url) } else { pendingFile = url }
         return true
     }
 
@@ -50,7 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         }
         run("/usr/bin/pluginkit", ["-e", "use", "-i", previewExtensionID])
         run("/usr/bin/pluginkit", ["-e", "use", "-i", thumbnailExtensionID])
-        resetQuickLookServices()
+        // Restarting Quick Look interrupts previews open in Finder, so only
+        // when this copy or version of the app has not registered before.
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let registered = "\(bundleURL.path) \(build)"
+        if UserDefaults.standard.string(forKey: "RegisteredBuild") != registered {
+            resetQuickLookServices()
+            UserDefaults.standard.set(registered, forKey: "RegisteredBuild")
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.refreshStatus() }
     }
 
