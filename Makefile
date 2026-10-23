@@ -21,6 +21,8 @@ install: native   ## Build and install into /Applications
 	@pkill -x MDQuickLook 2>/dev/null || true
 	rm -rf "$(INSTALL_DIR)/$(APP_NAME)"
 	cp -R "$(BUILD_APP)" "$(INSTALL_DIR)/"
+	@# Otherwise the build copy stays registered and shows up as a second, older app.
+	-$(LSREGISTER) -u "$(CURDIR)/$(BUILD_APP)"
 	$(LSREGISTER) -f -R "$(INSTALL_DIR)/$(APP_NAME)"
 	open "$(INSTALL_DIR)/$(APP_NAME)"
 	@$(MAKE) --no-print-directory reset
@@ -47,7 +49,8 @@ test:             ## Run the Rust core tests
 bench:            ## Time rendering of the showcase document
 	cargo run --quiet --release --manifest-path core/Cargo.toml -- examples/showcase.md --bench 500
 
-release: build    ## Zip the universal app for a GitHub release
+release: build    ## Zip the universal app for a GitHub release (notarized when SIGN_IDENTITY is set)
+	@if [ -n "$$SIGN_IDENTITY" ] && [ "$$SIGN_IDENTITY" != "-" ]; then scripts/notarize.sh "$(BUILD_APP)"; fi
 	cd build && ditto -c -k --sequesterRsrc --keepParent "$(APP_NAME)" "MD-QuickLook-$(VERSION).zip"
 	@shasum -a 256 "build/MD-QuickLook-$(VERSION).zip"
 

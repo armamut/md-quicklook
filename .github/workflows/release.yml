@@ -18,7 +18,31 @@ jobs:
         run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
       - name: Test core
         run: cargo test --release --manifest-path core/Cargo.toml
-      - name: Build and package
+      # Without these secrets the release is ad-hoc signed, as before.
+      - name: Import Developer ID certificate
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+        run: |
+          [ -n "$CERT_P12" ] || { echo "No signing certificate; building ad-hoc."; exit 0; }
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password="$(uuidgen)"
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "$password" "$keychain"
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity="$(security find-identity -v -p codesigning "$keychain" | grep -o '"Developer ID Application: [^"]*"' | head -1 | tr -d '"')"
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "$API_KEY_P8" | base64 --decode > "$RUNNER_TEMP/api-key.p8"
+          echo "APPLE_API_KEY=$RUNNER_TEMP/api-key.p8" >> "$GITHUB_ENV"
+      - name: Build, notarize and package
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
         run: make release
       - name: Publish release
         env:
@@ -26,3 +50,17 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" build/MD-QuickLook-*.zip \
             --title "MD QuickLook ${GITHUB_REF_NAME#v}" --generate-notes
+      - name: Update Homebrew cask
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          [ -n "$TAP_TOKEN" ] || { echo "No tap token; skipping."; exit 0; }
+          version="${GITHUB_REF_NAME#v}"
+          sha="$(shasum -a 256 build/MD-QuickLook-$version.zip | cut -d' ' -f1)"
+          git clone "https://x-access-token:$TAP_TOKEN@github.com/armamut/homebrew-tap.git" "$RUNNER_TEMP/tap"
+          cd "$RUNNER_TEMP/tap"
+          sed -i '' -e "s/^  version \".*\"/  version \"$version\"/" \
+                    -e "s/^  sha256 \".*\"/  sha256 \"$sha\"/" Casks/md-quicklook.rb
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -am "md-quicklook $version"
+          git push
