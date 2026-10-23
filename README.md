@@ -47,6 +47,12 @@ There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak
 
 ## Install
 
+**Homebrew:**
+
+```sh
+brew install --cask armamut/tap/md-quicklook
+```
+
 **One line** (downloads the latest release into `/Applications`):
 
 ```sh
