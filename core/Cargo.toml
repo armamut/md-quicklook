@@ -1,6 +1,6 @@
 [package]
 name = "mdql"
-version = "1.2.2"
+version = "1.2.3"
 description = "Fast Markdown to self-contained HTML renderer powering MD QuickLook"
 license = "MIT"
 repository = "https://github.com/armamut/md-quicklook"
