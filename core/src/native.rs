@@ -52,11 +52,14 @@ pub mod block {
     pub const TABLE_ROW: u8 = 7;
     pub const FRONT_MATTER: u8 = 9;
     pub const FOOTNOTES: u8 = 10;
+    /// Flags: `OPEN`. Its first paragraph is usually the `SUMMARY`.
     pub const DETAILS: u8 = 11;
 
     pub const TIGHT: u8 = 1;
     pub const HEADER: u8 = 2;
     pub const FRONT_MATTER_TABLE: u8 = 4;
+    /// `<details open>`: starts expanded.
+    pub const OPEN: u8 = 8;
 }
 
 /// Paragraph kinds.
@@ -873,7 +876,11 @@ impl Builder<'_> {
             }
             ("details", false) => {
                 self.close_para();
-                self.push_block(block::DETAILS, 0, 0, 0);
+                let open = inner.split_ascii_whitespace().skip(1).any(|word| {
+                    let attr = word.split('=').next().unwrap_or_default();
+                    attr.eq_ignore_ascii_case("open")
+                });
+                self.push_block(block::DETAILS, if open { block::OPEN } else { 0 }, 0, 0);
             }
             ("details", true) => {
                 if self.stack.last().is_some_and(|&b| self.blocks[b as usize].kind == block::DETAILS) {
@@ -1334,7 +1341,9 @@ mod tests {
         assert!(d.text.contains("go\u{2028}next"));
         assert!(d.paras.iter().any(|p| p.3 == para::SUMMARY));
         assert!(d.text.contains("Hidden text"));
-        assert!(d.blocks.iter().any(|b| b.0 == block::DETAILS));
+        assert!(d.blocks.iter().any(|b| b.0 == block::DETAILS && b.1 & block::OPEN == 0));
+        let open = doc("<details open>\n<summary>More</summary>\n\nShown\n\n</details>\n");
+        assert!(open.blocks.iter().any(|b| b.0 == block::DETAILS && b.1 & block::OPEN != 0));
         let d = doc("<script>alert(1)</script>\n\n<style>p{}</style>\n\nok\n");
         assert_eq!(d.text, "ok\n", "script and style contents are dropped");
     }

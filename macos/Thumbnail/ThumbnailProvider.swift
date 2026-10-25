@@ -52,7 +52,8 @@ final class ThumbnailProvider: QLThumbnailProvider {
         if let document {
             let renderer = NativeRenderer(document: document,
                                           options: .init(baseDirectory: base, synchronousDiagramsDark: false))
-            view.show(renderer.build(paragraphs: renderer.parts(firstPartCharacters: 3000)[0]), anchors: [:])
+            let text = renderer.build(paragraphs: renderer.parts(firstPartCharacters: 3000)[0])
+            view.show(text, anchors: [:], closedDetails: renderer.closedDetails)
         } else {
             view.show(NSAttributedString(string: String(decoding: fallback, as: UTF8.self), attributes: [
                 .font: NativeTheme.mono(size: 12), .foregroundColor: NativeTheme.fg,

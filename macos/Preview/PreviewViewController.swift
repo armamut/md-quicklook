@@ -70,14 +70,14 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 let text = renderer.build(paragraphs: parts[0])
                 let built = start.millisecondsAgo
                 Self.watchLateCells(renderer, in: documentView)
-                documentView.show(text, anchors: renderer.anchors)
+                documentView.show(text, anchors: renderer.anchors, closedDetails: renderer.closedDetails)
                 handler(nil)
                 if let rest = parts.dropFirst().first {
                     DispatchQueue.global(qos: .userInitiated).async {
                         let more = renderer.build(paragraphs: rest)
                         DispatchQueue.main.async { [weak documentView] in
                             Self.watchLateCells(renderer, in: documentView)
-                            documentView?.append(more, anchors: renderer.anchors)
+                            documentView?.append(more, anchors: renderer.anchors, closedDetails: renderer.closedDetails)
                             log.info("Rest of the document shown at \(start.millisecondsAgo, format: .fixed(precision: 1)) ms")
                         }
                     }

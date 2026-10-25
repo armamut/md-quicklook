@@ -46,7 +46,7 @@ struct NativeDocument {
         static let table: UInt8 = 6, tableRow: UInt8 = 7, frontMatter: UInt8 = 9, footnotes: UInt8 = 10
         static let details: UInt8 = 11
         // Flags
-        static let tight: UInt8 = 1, header: UInt8 = 2, frontMatterTable: UInt8 = 4
+        static let tight: UInt8 = 1, header: UInt8 = 2, frontMatterTable: UInt8 = 4, open: UInt8 = 8
     }
 
     enum ParagraphKind {

@@ -25,6 +25,8 @@ final class NativeRenderer {
     private(set) var anchors: [String: Int] = [:]
     /// Cells whose content arrives after display (remote images, diagrams).
     private(set) var lateCells: [NativeCell] = []
+    /// `<details>` blocks without `open`, to show folded.
+    private(set) var closedDetails: Set<Int> = []
 
     private lazy var text = doc.text as NSString
     private var runCursor = 0
@@ -94,6 +96,16 @@ final class NativeRenderer {
                 .font: context.font,
             ]
             if let color = context.color { attributes[.foregroundColor] = color }
+            // Foldable sections: a summary toggles its block, whose other
+            // paragraphs are marked with every enclosing <details>.
+            var details = doc.ancestry(of: p.block).filter { doc.blocks[$0].kind == Block.details }
+            if p.kind == Kind.summary, details.first == Int(p.block) {
+                details.removeFirst()
+                attributes[.detailsSummary] = Int(p.block)
+                attributes[.cursor] = NSCursor.pointingHand
+                if doc.blocks[Int(p.block)].flags & Block.open == 0 { closedDetails.insert(Int(p.block)) }
+            }
+            if !details.isEmpty { attributes[.detailsBody] = details }
             out.addAttributes(attributes, range: r)
             bases.append((p.range, context.font.pointSize, context.mono, p.kind == Kind.heading))
 

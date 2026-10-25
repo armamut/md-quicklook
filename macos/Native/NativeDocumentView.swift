@@ -2,10 +2,13 @@ import AppKit
 
 /// A scrolling, read-only TextKit 1 view for a rendered document. Text is
 /// kept to a readable column (centred in wide windows, edge-to-edge with a
-/// small margin in narrow ones), links open, `#anchor` links scroll.
+/// small margin in narrow ones), links open, `#anchor` links scroll,
+/// `<details>` sections fold and unfold.
 final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
     let textView: DocumentTextView
-    private var anchors: [String: Int] = [:]
+    private var folding = DetailsFolding()
+    /// Length of the text as built, before folding: anchors index into it.
+    private var builtLength = 0
 
     override init(frame: NSRect) {
         // TextKit 1: TextKit 2 cannot lay out tables (NSTextTable).
@@ -14,6 +17,9 @@ final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
         self.textView = textView
         super.init(frame: frame)
 
+        // Follow the host's size: Finder resizes the preview without asking
+        // for a new one, e.g. when switching to the column view.
+        autoresizingMask = [.width, .height]
         hasVerticalScroller = true
         hasHorizontalScroller = false
         autohidesScrollers = true
@@ -36,21 +42,42 @@ final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
         textView.linkTextAttributes = [.foregroundColor: NativeTheme.link, .cursor: NSCursor.pointingHand]
         textView.displaysLinkToolTips = true
         textView.delegate = self
+        textView.summaryClicked = { [weak self] id in self?.toggleDetails(id) }
         documentView = textView
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
-    func show(_ text: NSAttributedString, anchors: [String: Int]) {
-        self.anchors = anchors
-        textView.textStorage?.setAttributedString(text)
+    func show(_ text: NSAttributedString, anchors: [String: Int], closedDetails: Set<Int> = []) {
+        folding = DetailsFolding()
+        builtLength = 0
+        textView.textStorage?.setAttributedString(prepare(text, anchors: anchors, closedDetails: closedDetails))
         textView.scrollToBeginningOfDocument(nil)
     }
 
     /// Appends the rest of a progressively rendered document.
-    func append(_ text: NSAttributedString, anchors: [String: Int]) {
-        self.anchors = anchors
-        textView.textStorage?.append(text)
+    func append(_ text: NSAttributedString, anchors: [String: Int], closedDetails: Set<Int> = []) {
+        textView.textStorage?.append(prepare(text, anchors: anchors, closedDetails: closedDetails))
+    }
+
+    /// Marks anchors on their characters (folding moves text around) and
+    /// folds closed sections.
+    private func prepare(_ text: NSAttributedString, anchors: [String: Int],
+                         closedDetails: Set<Int>) -> NSAttributedString {
+        let part = NSMutableAttributedString(attributedString: text)
+        let start = builtLength
+        builtLength += part.length
+        for (name, index) in anchors where (start..<builtLength).contains(index) {
+            part.addAttribute(.anchor, value: name, range: NSRange(location: index - start, length: 1))
+        }
+        folding.fold(part, closing: closedDetails)
+        return part
+    }
+
+    private func toggleDetails(_ id: Int) {
+        guard let storage = textView.textStorage else { return }
+        textView.setSelectedRange(NSRange(location: 0, length: 0))
+        folding.toggle(id, in: storage)
     }
 
     /// Fallback for files the core could not render.
@@ -73,7 +100,9 @@ final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
     func textView(_ textView: NSTextView, clickedOnLink link: Any, at charIndex: Int) -> Bool {
         if let anchor = link as? String, anchor.hasPrefix("#") {
             let name = String(anchor.dropFirst()).removingPercentEncoding ?? String(anchor.dropFirst())
-            if let index = anchors[name] ?? anchors[name.lowercased()] {
+            guard let storage = textView.textStorage else { return true }
+            folding.reveal(anchor: name, in: storage)
+            if let index = DetailsFolding.location(ofAnchor: name, in: storage) {
                 scrollTo(characterIndex: index)
             }
             return true
@@ -99,6 +128,27 @@ final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
 /// Keeps the text column readable by adjusting the container inset to the
 /// view's width.
 final class DocumentTextView: NSTextView {
+    var summaryClicked: ((Int) -> Void)?
+
+    override func mouseDown(with event: NSEvent) {
+        if let id = summary(at: convert(event.locationInWindow, from: nil)) {
+            summaryClicked?(id)
+            return
+        }
+        super.mouseDown(with: event)
+    }
+
+    /// The `<details>` whose summary line is under a point.
+    private func summary(at point: NSPoint) -> Int? {
+        guard let layoutManager, let textContainer, let textStorage, textStorage.length > 0 else { return nil }
+        let inContainer = NSPoint(x: point.x - textContainerOrigin.x, y: point.y - textContainerOrigin.y)
+        let glyph = layoutManager.glyphIndex(for: inContainer, in: textContainer)
+        guard layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil).contains(inContainer) else { return nil }
+        let index = layoutManager.characterIndexForGlyph(at: glyph)
+        guard index < textStorage.length else { return nil }
+        return textStorage.attribute(.detailsSummary, at: index, effectiveRange: nil) as? Int
+    }
+
     override func setFrameSize(_ newSize: NSSize) {
         let side = max(narrowMargin(for: newSize.width), (newSize.width - NativeTheme.maxContentWidth) / 2)
         let inset = NSSize(width: side.rounded(), height: newSize.width < 500 ? 14 : 28)

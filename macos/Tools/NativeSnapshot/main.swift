@@ -56,7 +56,7 @@ if ProcessInfo.processInfo.environment["MDQL_NO_WINDOW"] == nil {
     view.appearance = window.appearance
 }
 t = Date()
-view.show(text, anchors: renderer.anchors)
+view.show(text, anchors: renderer.anchors, closedDetails: renderer.closedDetails)
 let layoutManager = view.textView.layoutManager!
 layoutManager.ensureLayout(for: view.textView.textContainer!)
 let layoutMs = Date().timeIntervalSince(t) * 1000
