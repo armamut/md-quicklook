@@ -14,8 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshot-light.png" width="49%" alt="Light theme preview">
-  <img src="docs/screenshot-dark.png" width="49%" alt="Dark theme preview">
+  <img src="docs/demo.gif" width="800" alt="Pressing Space on Markdown files in Finder: rendered text, code, Mermaid diagrams and math, the preview pane, and switching from dark to light">
 </p>
 
 ## Features
