@@ -44,6 +44,8 @@ There is no web engine. A Rust core ([comrak](https://github.com/kivikakk/comrak
 - **Syntax highlighting** grammars are pre-processed at build time so their regexes compile 3–5× faster, and common languages are compiled on all cores while macOS launches the extension.
 - **Light and dark** colours, including code, switch instantly with the system appearance.
 
+More on how this works: [Previewing Markdown on macOS in 30 ms: a Rust core and TextKit, no web engine](https://medium.com/@armamut/previewing-markdown-on-macos-in-30-ms-a-rust-core-and-textkit-no-web-engine-1adfa2734f48).
+
 ## Install
 
 **Homebrew:**
