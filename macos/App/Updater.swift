@@ -1,8 +1,9 @@
 import AppKit
+import CryptoKit
 
 /// Checks GitHub for a newer release and installs it in place: downloads the
-/// release zip, verifies the app inside, swaps it for the running bundle and
-/// relaunches. Only the host app talks to the network; the Quick Look
+/// release zip, checks its signature and the app inside, swaps it for the
+/// running bundle and relaunches. Only the host app talks to the network; the Quick Look
 /// extensions never do.
 final class Updater {
     struct Release {
@@ -10,6 +11,7 @@ final class Updater {
         let notes: String
         let page: URL
         let download: URL
+        let signature: URL
     }
 
     enum UpdateError: LocalizedError {
@@ -20,8 +22,10 @@ final class Updater {
     }
 
     static let repository = "armamut/md-quicklook"
-    /// Downloads must come from this repository's releases.
-    private static let downloadPrefix = "https://github.com/\(repository)/releases/download/"
+    /// Public half of the release signing key (see scripts/release-key.swift),
+    /// Base64. The private half never leaves the maintainer's Mac, so taking
+    /// over the GitHub repository is not enough to ship an update.
+    private static let releaseKey = "+e3jEXBF6eShghRDBuBvtdn2dEnzv6sYVxnSyluCfD0="
 
     private let defaults = UserDefaults.standard
     private static let automaticKey = "CheckForUpdatesAutomatically"
@@ -80,12 +84,15 @@ final class Updater {
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag = json["tag_name"] as? String,
               let page = (json["html_url"] as? String).flatMap(URL.init(string:)),
-              let assets = json["assets"] as? [[String: Any]],
-              let download = assets.compactMap({ $0["browser_download_url"] as? String })
-                  .first(where: { $0.hasSuffix(".zip") }).flatMap(URL.init(string:))
+              let assets = json["assets"] as? [[String: Any]]
         else { throw UpdateError.message("The release information could not be read.") }
+        let urls = assets.compactMap { $0["browser_download_url"] as? String }
+        guard let zip = urls.first(where: { $0.hasSuffix(".zip") }), urls.contains(zip + ".sig"),
+              let download = URL(string: zip), let signature = URL(string: zip + ".sig")
+        else { throw UpdateError.message("The release has no signed download.") }
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-        return Release(version: version, notes: json["body"] as? String ?? "", page: page, download: download)
+        return Release(version: version, notes: json["body"] as? String ?? "", page: page, download: download,
+                       signature: signature)
     }
 
     /// Compares dotted versions numerically: 1.10.0 > 1.9.2.
@@ -105,16 +112,30 @@ final class Updater {
     /// relaunches it. Calls back on the main thread only on failure.
     /// `progress` reports the download (0...1) on the main thread.
     func install(_ release: Release, progress: @escaping (Double) -> Void, failure: @escaping (Error) -> Void) {
-        guard release.download.absoluteString.hasPrefix(Self.downloadPrefix) else {
+        guard Self.isReleaseAsset(release.download), Self.isReleaseAsset(release.signature) else {
             failure(UpdateError.message("The download is not from the MD QuickLook releases."))
             return
         }
+        URLSession.shared.dataTask(with: release.signature) { signature, response, error in
+            guard let signature, error == nil, (response as? HTTPURLResponse)?.statusCode == 200 else {
+                DispatchQueue.main.async { failure(error ?? UpdateError.message("The download failed.")) }
+                return
+            }
+            self.download(release, signature: signature, progress: progress, failure: failure)
+        }.resume()
+    }
+
+    private func download(_ release: Release, signature: Data, progress: @escaping (Double) -> Void,
+                          failure: @escaping (Error) -> Void) {
         let task = URLSession.shared.downloadTask(with: release.download) { location, response, error in
             self.observation = nil
             do {
                 if let error { throw error }
                 guard let location, (response as? HTTPURLResponse)?.statusCode == 200 else {
                     throw UpdateError.message("The download failed.")
+                }
+                guard Self.isSigned(location, signature: signature, key: Self.releaseKey) else {
+                    throw UpdateError.message("The download is not signed by MD QuickLook's release key.")
                 }
                 let app = try self.unpack(location, expecting: release.version)
                 try self.replaceRunningApp(with: app)
@@ -130,6 +151,28 @@ final class Updater {
     }
 
     private var observation: NSKeyValueObservation?
+
+    /// Whether `url` is a file of one of this repository's releases.
+    static func isReleaseAsset(_ url: URL) -> Bool {
+        let text = url.absoluteString
+        guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false), parts.scheme == "https",
+              parts.host == "github.com", parts.port == nil, parts.user == nil, parts.password == nil,
+              parts.query == nil, parts.fragment == nil, !text.contains("%"), !text.contains("\\")
+        else { return false }
+        let path = url.path.split(separator: "/", omittingEmptySubsequences: false).map(String.init)
+        // "", owner, repository, "releases", "download", tag, file
+        return path.count == 7 && path.dropFirst(4).allSatisfy { $0 != ".." && $0 != "." && !$0.isEmpty }
+            && path[1...4].joined(separator: "/") == "\(repository)/releases/download"
+    }
+
+    /// Verifies the Ed25519 signature of a file. Anything unreadable fails.
+    static func isSigned(_ file: URL, signature: Data, key: String) -> Bool {
+        guard let raw = Data(base64Encoded: key),
+              let publicKey = try? Curve25519.Signing.PublicKey(rawRepresentation: raw),
+              let contents = try? Data(contentsOf: file, options: .mappedIfSafe)
+        else { return false }
+        return publicKey.isValidSignature(signature, for: contents)
+    }
 
     /// Unzips the download and checks that it holds this app at the expected version.
     private func unpack(_ zip: URL, expecting version: String) throws -> URL {

@@ -79,7 +79,7 @@ Opening the app registers the extensions; after that it can be closed. If previe
 
 ## Updates
 
-Open the app and click **Check Now** (or *MD QuickLook ▸ Check for Updates…*). When a newer release exists, **Install and Relaunch** downloads it from this repository's releases, verifies it and replaces the app in place. With *Check for updates automatically* on (the default), the app also looks once a day when you open it. Only the app does this: the Quick Look extensions never use the network. Running the one-line installer again also updates.
+Open the app and click **Check Now** (or *MD QuickLook ▸ Check for Updates…*). When a newer release exists, **Install and Relaunch** downloads it from this repository's releases, checks its release signature and replaces the app in place. With *Check for updates automatically* on (the default), the app also looks once a day when you open it. Only the app does this: the Quick Look extensions never use the network. Running the one-line installer again also updates.
 
 ## Uninstall
 
