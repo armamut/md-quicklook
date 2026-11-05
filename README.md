@@ -66,9 +66,10 @@ curl -fsSL https://raw.githubusercontent.com/armamut/md-quicklook/main/scripts/i
 xattr -dr com.apple.quarantine "/Applications/MD QuickLook.app"
 ```
 
-**From source** (needs Rust and the Xcode Command Line Tools — full Xcode is not required):
+**From source** (needs [Rust](https://rustup.rs) and the Xcode Command Line Tools — full Xcode is not required):
 
 ```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # if Rust is not installed
 git clone https://github.com/armamut/md-quicklook.git
 cd md-quicklook
 make install

@@ -544,9 +544,11 @@ final class DistinctTextBlock: NSTextBlock {
     override func isEqual(_ object: Any?) -> Bool { self === object as AnyObject? }
     override var hash: Int { ObjectIdentifier(self).hashValue }
 
-    override func drawBackground(withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+    // `NSView?` compiles against every SDK: some declare this parameter
+    // nullable, and an override may accept more than its superclass does.
+    override func drawBackground(withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
                                  layoutManager: NSLayoutManager) {
-        if !decoration.draw(for: self, in: frameRect) {
+        if !decoration.draw(for: self, in: frameRect), let controlView {
             super.drawBackground(withFrame: frameRect, in: controlView, characterRange: charRange,
                                  layoutManager: layoutManager)
         }
@@ -562,9 +564,11 @@ final class DistinctTextTable: NSTextTable {
     override func isEqual(_ object: Any?) -> Bool { self === object as AnyObject? }
     override var hash: Int { ObjectIdentifier(self).hashValue }
 
-    override func drawBackground(withFrame frameRect: NSRect, in controlView: NSView, characterRange charRange: NSRange,
+    // `NSView?` compiles against every SDK: some declare this parameter
+    // nullable, and an override may accept more than its superclass does.
+    override func drawBackground(withFrame frameRect: NSRect, in controlView: NSView?, characterRange charRange: NSRange,
                                  layoutManager: NSLayoutManager) {
-        if !decoration.draw(for: self, in: frameRect) {
+        if !decoration.draw(for: self, in: frameRect), let controlView {
             super.drawBackground(withFrame: frameRect, in: controlView, characterRange: charRange,
                                  layoutManager: layoutManager)
         }
