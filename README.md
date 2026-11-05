@@ -27,7 +27,7 @@
 - **Local images** next to the file are embedded (`![](images/shot.png)`, `<img src="logo.svg">`).
 - **Badges without the network** — static shields.io badges are drawn locally in their real colours; other remote images show their description. Loading remote images can be turned on in the app.
 - **Light and dark** follow the system appearance.
-- **Clickable links** — headings scroll, links to other Markdown files open them.
+- **Clickable links** — headings scroll, web and mail links open. Links to local files do nothing, so a document cannot start an app.
 - **Finder thumbnails** — icons show a miniature of the rendered page.
 - **Private by design** — no web engine, no JavaScript, no network requests, sandboxed.
 

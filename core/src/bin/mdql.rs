@@ -59,7 +59,8 @@ fn main() {
     let render = || {
         if native {
             // Bench the binary layout; print a readable dump of it otherwise.
-            let bytes = mdql::native::render_native(&text, opts.base_dir.as_deref(), opts.remote_images);
+            let bytes = mdql::native::render_native(&text, opts.base_dir.as_deref(), opts.remote_images)
+                .unwrap_or_else(|| fail("too deeply nested for the native layout"));
             if bench > 0 { format!("{}", bytes.len()) } else { native_dump(&bytes) }
         } else if fragment {
             mdql::render_fragment(&text, &opts)

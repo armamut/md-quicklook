@@ -12,7 +12,6 @@ final class WebPreviewController: NSViewController, QLPreviewingController, WKNa
     private static let maxRenderSize = 64 * 1024 * 1024
 
     private var webView: WKWebView!
-    private var baseDirectory: URL?
     private var completion: ((Error?) -> Void)?
     /// The load showing the previewed file; events of any earlier load (such
     /// as the pool's warm-up page) are ignored.
@@ -30,7 +29,6 @@ final class WebPreviewController: NSViewController, QLPreviewingController, WKNa
         requested = DispatchTime.now()
         let dark = view.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             || Renderer.systemTheme == MDQL_THEME_DARK
-        baseDirectory = url.deletingLastPathComponent()
         completion = handler
 
         DispatchQueue.global(qos: .userInitiated).async {
@@ -93,11 +91,17 @@ final class WebPreviewController: NSViewController, QLPreviewingController, WKNa
         finish(nil)
     }
 
-    /// Same-page anchors scroll; other links open in their default app.
+    /// Same-page anchors scroll; other links go through `LinkPolicy`.
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard action.navigationType == .linkActivated, let url = action.request.url else {
-            decisionHandler(.allow)
+        guard let url = action.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        guard action.navigationType == .linkActivated else {
+            // The page itself loads from about:blank. Anything else, such as
+            // a <meta> refresh in the document, must not reach the network.
+            decisionHandler(url.scheme == "about" ? .allow : .cancel)
             return
         }
         if url.scheme == "about", url.fragment != nil {
@@ -105,16 +109,7 @@ final class WebPreviewController: NSViewController, QLPreviewingController, WKNa
             return
         }
         decisionHandler(.cancel)
-        NSWorkspace.shared.open(resolve(url))
-    }
-
-    /// Relative links (e.g. "other.md") arrive relative to about:blank;
-    /// resolve them against the previewed file's folder.
-    private func resolve(_ url: URL) -> URL {
-        guard url.scheme == "about", let base = baseDirectory else { return url }
-        let path = String(url.absoluteString.dropFirst("about:".count))
-            .components(separatedBy: "#")[0]
-        return URL(fileURLWithPath: path.removingPercentEncoding ?? path, relativeTo: base).standardizedFileURL
+        LinkPolicy.follow(url)
     }
 }
 

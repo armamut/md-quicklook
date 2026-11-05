@@ -22,6 +22,7 @@ use std::path::Path;
 use std::sync::LazyLock;
 
 use comrak::nodes::{AlertType, AstNode, ListType, NodeValue, TableAlignment};
+use comrak::arena_tree::NodeEdge;
 use comrak::{Anchorizer, Arena, parse_document};
 use syntect::highlighting::{HighlightState, Highlighter, RangedHighlightIterator, Theme};
 use syntect::parsing::{ParseState, ScopeStack, SyntaxReference};
@@ -205,11 +206,34 @@ enum Marker {
     Checkbox(bool),
 }
 
-/// Renders Markdown into the binary native layout.
-pub fn render_native(markdown: &str, base_dir: Option<&Path>, remote_images: bool) -> Vec<u8> {
+/// The walk below recurses once per level of nesting, and a stack overflow
+/// aborts the process (`catch_unwind` cannot help), so deeper documents are
+/// refused. Quick Look's threads have small stacks.
+const MAX_NESTING: usize = 256;
+
+fn nesting_depth<'a>(root: &'a AstNode<'a>) -> usize {
+    let (mut depth, mut deepest) = (0usize, 0);
+    for edge in root.traverse() {
+        match edge {
+            NodeEdge::Start(_) => {
+                depth += 1;
+                deepest = deepest.max(depth);
+            }
+            NodeEdge::End(_) => depth -= 1,
+        }
+    }
+    deepest
+}
+
+/// Renders Markdown into the binary native layout, or `None` if it is nested
+/// too deeply to walk safely (callers show such files as plain text).
+pub fn render_native(markdown: &str, base_dir: Option<&Path>, remote_images: bool) -> Option<Vec<u8>> {
     let options = comrak_options();
     let arena = Arena::new();
     let root = parse_document(&arena, markdown, &options);
+    if nesting_depth(root) > MAX_NESTING {
+        return None;
+    }
 
     let highlighted = if markdown.len() <= MAX_HIGHLIGHT_DOCUMENT { highlight_all(root) } else { HashMap::new() };
     let mut b = Builder {
@@ -238,7 +262,7 @@ pub fn render_native(markdown: &str, base_dir: Option<&Path>, remote_images: boo
         b.block_node(child);
     }
     b.close_para();
-    b.encode()
+    Some(b.encode())
 }
 
 impl Builder<'_> {
@@ -1228,7 +1252,7 @@ mod tests {
     use super::*;
 
     fn doc(md: &str) -> Decoded {
-        Decoded::parse(&render_native(md, None, false)).expect("valid encoding")
+        Decoded::parse(&render_native(md, None, false).expect("not too deep")).expect("valid encoding")
     }
 
     fn para_text(d: &Decoded, i: usize) -> String {
@@ -1359,6 +1383,15 @@ mod tests {
         assert!(d.strings.iter().any(|s| s == "#fn-n"));
     }
 
+    #[test]
+    fn refuses_documents_nested_too_deeply() {
+        let quotes = |n: usize| ">".repeat(n) + " x\n";
+        // The document, each quote, a paragraph and its text are one level each.
+        assert!(render_native(&quotes(MAX_NESTING - 3), None, false).is_some());
+        assert!(render_native(&quotes(MAX_NESTING - 2), None, false).is_none());
+        assert!(render_native(&format!("{}x{}\n", "*a ".repeat(4000), " a*".repeat(4000)), None, false).is_none());
+    }
+
     /// Random documents assembled from tricky fragments must never panic and
     /// must always produce a well-formed layout.
     #[test]
@@ -1383,7 +1416,7 @@ mod tests {
             }
             // The HTML renderer sees the same inputs.
             let _ = crate::render_document(&md, &crate::RenderOptions::default());
-            let bytes = render_native(&md, None, false);
+            let bytes = render_native(&md, None, false).expect("not too deep");
             let d = Decoded::parse(&bytes).unwrap_or_else(|| panic!("malformed layout for {md:?}"));
             let total = d.text.encode_utf16().count() as u32;
             for p in &d.paras {

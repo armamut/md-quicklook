@@ -66,7 +66,7 @@ for arch in $ARCHS; do
         -import-objc-header "$ROOT/core/include/mdql.h" \
         "$M/Preview/Launch.swift" "$M/Preview/PreviewViewController.swift" "$M/Preview/WebPreview.swift" \
         "$M/Thumbnail/ThumbnailProvider.swift" "$M"/Native/*.swift "$M/Shared/Renderer.swift" \
-        "$M/Shared/Settings.swift" $(find "$M/Vendor/SwiftMath" -name '*.swift') \
+        "$M/Shared/LinkPolicy.swift" "$M/Shared/Settings.swift" $(find "$M/Vendor/SwiftMath" -name '*.swift') \
         -L "$WORK/lib" -lmdql -framework QuickLookUI -framework QuickLookThumbnailing -framework WebKit \
         -framework AppKit
     slices+=("$WORK/$CORE-$arch")

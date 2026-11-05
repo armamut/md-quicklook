@@ -14,5 +14,10 @@
 	     default-src 'none' and only embedded data: images. -->
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Quick Look extensions may not open anything otherwise, web links
+	     included (NSExtensionContext refuses too). LinkPolicy allows only
+	     the web and mail. -->
+	<key>com.apple.security.temporary-exception.sbpl</key>
+	<string>(allow lsopen)</string>
 </dict>
 </plist>

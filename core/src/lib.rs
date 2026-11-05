@@ -171,7 +171,7 @@ pub fn render_document(markdown: &str, opts: &RenderOptions) -> String {
         html.push_str(" https: http:");
     }
     html.push_str(
-        "; media-src data:; style-src 'unsafe-inline'; font-src data:\">\
+        "; media-src data:; style-src 'unsafe-inline'; font-src data:; base-uri 'none'; form-action 'none'\">\
          <meta name=\"color-scheme\" content=\"",
     );
     html.push_str(color_scheme);
@@ -602,11 +602,13 @@ fn decode_entities(s: &str) -> Cow<'_, str> {
     )
 }
 
-/// GitHub's "disallowed raw HTML" filter: neutralises tags that could run
-/// scripts or break the page layout.
+/// GitHub's "disallowed raw HTML" filter, plus tags that could leave the page
+/// or reach the network: neutralises what could run scripts, break the page
+/// layout or navigate away.
 fn tag_filter(html: &str) -> Cow<'_, str> {
-    const TAGS: [&str; 9] = [
-        "title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext",
+    const TAGS: [&str; 13] = [
+        "title", "textarea", "style", "xmp", "iframe", "noembed", "noframes", "script", "plaintext", "meta", "base",
+        "link", "form",
     ];
     let b = html.as_bytes();
     let mut out: Option<String> = None;
@@ -998,6 +1000,10 @@ mod tests {
         assert!(!html.contains("<script") && html.contains("&lt;script>"));
         assert!(!html.contains("<iframe") && !html.contains("<style"));
         assert!(body("<details><summary>s</summary>x</details>").contains("<details>"));
+        let html = body("<meta http-equiv=\"refresh\" content=\"0;url=https://x\">\n\n<base href=x> <LINK rel=x> <form\naction=x></form>\n");
+        for tag in ["<meta", "<base", "<LINK", "<form"] {
+            assert!(!html.contains(tag), "{tag} in {html}");
+        }
     }
 
     #[test]

@@ -487,15 +487,10 @@ final class NativeRenderer {
         return attributes
     }
 
-    /// Links: "#anchor" stays a string for in-document jumps; relative paths
-    /// resolve against the document's folder.
+    /// Links: "#anchor" stays a string for in-document jumps.
     private func link(_ id: UInt32) -> Any? {
         guard let raw = doc.string(oneBased: id), !raw.isEmpty else { return nil }
-        if raw.hasPrefix("#") { return raw }
-        if let url = URL(string: raw), url.scheme != nil { return url }
-        guard let base = options.baseDirectory else { return URL(string: raw) }
-        let path = raw.components(separatedBy: "#")[0]
-        return URL(fileURLWithPath: path.removingPercentEncoding ?? path, relativeTo: base).standardizedFileURL
+        return raw.hasPrefix("#") ? raw : URL(string: raw)
     }
 
     private func cell(for run: NativeDocument.Run, size: CGFloat) -> NativeCell? {

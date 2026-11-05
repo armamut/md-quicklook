@@ -1,7 +1,10 @@
 //! Mermaid diagrams, without a browser: laid out by mermaid-rs-renderer and
 //! drawn into a bitmap with resvg.
 
-use std::sync::{Arc, LazyLock};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, LazyLock, Mutex, mpsc};
+use std::thread;
+use std::time::Duration;
 
 use mermaid_rs_renderer::{RenderOptions, Theme, render_with_options};
 use resvg::{tiny_skia, usvg};
@@ -16,6 +19,62 @@ const FONT_FAMILY: &str = "Helvetica Neue, Helvetica, Arial, sans-serif";
 
 /// Diagrams are never drawn wider or taller than this many pixels.
 const MAX_PIXELS: f32 = 8192.0;
+/// Layout cost grows quickly: a few kilobytes of edges can take minutes.
+const MAX_DRAW_TIME: Duration = Duration::from_secs(5);
+const WORKER_STACK: usize = 8 * 1024 * 1024;
+
+/// Runs work that cannot be cancelled on its own thread, and gives up waiting
+/// after a time limit. An abandoned thread runs on until it finishes, so while
+/// one does no more are started: a document full of slow diagrams costs one
+/// core and one time limit, not one of each per diagram.
+struct Worker {
+    /// Callers wait in turn, so `running` is above zero only for abandoned work.
+    turn: Mutex<()>,
+    running: AtomicUsize,
+}
+
+static DIAGRAMS: Worker = Worker::new();
+
+impl Worker {
+    const fn new() -> Self {
+        Self { turn: Mutex::new(()), running: AtomicUsize::new(0) }
+    }
+
+    fn run<T: Send + 'static>(
+        &'static self,
+        limit: Duration,
+        work: impl FnOnce() -> Option<T> + Send + 'static,
+    ) -> Option<T> {
+        struct Finished(&'static AtomicUsize);
+        impl Drop for Finished {
+            fn drop(&mut self) {
+                self.0.fetch_sub(1, Ordering::AcqRel);
+            }
+        }
+
+        let _turn = self.turn.lock().unwrap_or_else(|e| e.into_inner());
+        if self.running.load(Ordering::Acquire) > 0 {
+            return None;
+        }
+        self.running.fetch_add(1, Ordering::AcqRel);
+        let (sender, receiver) = mpsc::channel();
+        let running = &self.running;
+        let spawned = thread::Builder::new().name("mermaid".into()).stack_size(WORKER_STACK).spawn(move || {
+            // Done counting before answering, so the next caller never sees
+            // finished work as abandoned; also runs if `work` panics.
+            let result = {
+                let _finished = Finished(running);
+                work()
+            };
+            let _ = sender.send(result);
+        });
+        if spawned.is_err() {
+            self.running.fetch_sub(1, Ordering::AcqRel);
+            return None;
+        }
+        receiver.recv_timeout(limit).ok().flatten()
+    }
+}
 
 static FONTS: LazyLock<Arc<usvg::fontdb::Database>> = LazyLock::new(|| {
     let mut db = usvg::fontdb::Database::new();
@@ -95,8 +154,14 @@ fn theme(dark: bool) -> Theme {
     theme
 }
 
-/// Draws the diagram at `scale` pixels per point.
+/// Draws the diagram at `scale` pixels per point, or returns `None` if it
+/// cannot be drawn, or not in reasonable time.
 pub fn render(source: &str, dark: bool, scale: f32) -> Option<Bitmap> {
+    let source = source.to_owned();
+    DIAGRAMS.run(MAX_DRAW_TIME, move || draw(&source, dark, scale))
+}
+
+fn draw(source: &str, dark: bool, scale: f32) -> Option<Bitmap> {
     let svg = svg(source, dark)?;
     let options = usvg::Options { fontdb: FONTS.clone(), ..usvg::Options::default() };
     let tree = usvg::Tree::from_str(&svg, &options).ok()?;
@@ -126,6 +191,29 @@ mod tests {
         // Something was drawn, and the background stayed transparent.
         assert!(bitmap.rgba.chunks(4).any(|p| p[3] == 255));
         assert_eq!(bitmap.rgba[3], 0);
+    }
+
+    #[test]
+    fn slow_work_is_abandoned_and_blocks_more_work_until_it_ends() {
+        static WORKER: Worker = Worker::new();
+        let (release, wait) = mpsc::channel::<()>();
+        let limit = Duration::from_millis(50);
+        let slow = WORKER.run(limit, move || wait.recv().ok().map(|_| 1));
+        assert_eq!(slow, None);
+        assert_eq!(WORKER.run(Duration::from_secs(5), || Some(2)), None, "still busy");
+
+        release.send(()).unwrap();
+        while WORKER.running.load(Ordering::Acquire) > 0 {
+            thread::yield_now();
+        }
+        assert_eq!(WORKER.run(Duration::from_secs(5), || Some(3)), Some(3));
+    }
+
+    #[test]
+    fn a_panic_does_not_block_later_work() {
+        static WORKER: Worker = Worker::new();
+        assert_eq!(WORKER.run(Duration::from_secs(5), || -> Option<u8> { panic!("expected in this test") }), None);
+        assert_eq!(WORKER.run(Duration::from_secs(5), || Some(1)), Some(1));
     }
 
     #[test]

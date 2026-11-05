@@ -81,12 +81,12 @@ pub unsafe extern "C" fn mdql_render_native(
         crate::native::render_native(&text, base_dir.as_deref(), flags & FLAG_REMOTE_IMAGES != 0)
     }));
     match result {
-        Ok(buf) => {
+        Ok(Some(buf)) => {
             let boxed = buf.into_boxed_slice();
             unsafe { *out_len = boxed.len() };
             Box::into_raw(boxed) as *mut u8
         }
-        Err(_) => std::ptr::null_mut(),
+        _ => std::ptr::null_mut(),
     }
 }
 

@@ -108,10 +108,10 @@ final class NativeDocumentView: NSScrollView, NSTextViewDelegate {
             return true
         }
         if let url = link as? URL {
-            NSWorkspace.shared.open(url)
-            return true
+            LinkPolicy.follow(url)
         }
-        return false
+        // Always handled here: AppKit's default would open anything.
+        return true
     }
 
     private func scrollTo(characterIndex index: Int) {

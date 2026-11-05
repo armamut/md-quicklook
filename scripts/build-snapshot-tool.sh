@@ -13,7 +13,7 @@ build_tool() { # module name, tool folder, output name
     swiftc -O -swift-version 5 -module-name "$1" \
         -import-objc-header "$ROOT/core/include/mdql.h" \
         $(find "$M/Vendor/SwiftMath" -name '*.swift') "$M"/Native/*.swift \
-        "$M/Shared/Renderer.swift" "$M/Shared/Settings.swift" "$M/Tools/$2/main.swift" \
+        "$M/Shared/Renderer.swift" "$M/Shared/LinkPolicy.swift" "$M/Shared/Settings.swift" "$M/Tools/$2/main.swift" \
         -L "$ROOT/core/target/release" -lmdql -framework AppKit \
         -o "$OUT/$3" 2>&1 | grep -v "built for newer 'macOS' version" || true
     test -x "$OUT/$3"
