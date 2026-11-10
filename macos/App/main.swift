@@ -395,18 +395,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
     }
     
     @objc private func showAbout() {
-        let copyright = Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? ""
-        let sourceURL = Bundle.main.object(forInfoDictionaryKey: "sourceURL") as? String ?? ""
-        
-        let credits = NSAttributedString(string: "\nView on GitHub", attributes: [
-            .link: URL(string: sourceURL)!
-        ])
-        
-        let options: [NSApplication.AboutPanelOptionKey: Any] = [
-            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyright,
-            .credits: credits
-        ]
-
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
+        if let source = Bundle.main.object(forInfoDictionaryKey: "sourceURL") as? String,
+           let url = URL(string: source) {
+            options[.credits] = NSAttributedString(string: "\nView on GitHub", attributes: [.link: url])
+        }
         NSApp.orderFrontStandardAboutPanel(options: options)
     }
 }
