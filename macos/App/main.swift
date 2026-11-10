@@ -393,7 +393,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         fileItem.submenu = fileMenu
         NSApp.mainMenu = main
     }
-    
+
     @objc private func showAbout() {
         var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
         if let source = Bundle.main.object(forInfoDictionaryKey: "sourceURL") as? String,
