@@ -30,6 +30,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 armamut · MIT License</string>
+	<key>sourceURL</key>
+	<string>https://github.com/armamut/md-quicklook</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>CFBundleDocumentTypes</key>
