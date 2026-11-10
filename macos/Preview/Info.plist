@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>MD QuickLook</string>
+	<string>MD QuickLook Preview</string>
 	<key>CFBundleExecutable</key>
 	<string>MDQuickLookPreview</string>
 	<key>CFBundleIdentifier</key>
