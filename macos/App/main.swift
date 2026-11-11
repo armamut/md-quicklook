@@ -378,7 +378,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         main.addItem(appItem)
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About MD QuickLook",
-                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+                        action: #selector(showAbout), keyEquivalent: "")
         appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdatesClicked), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide MD QuickLook", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
@@ -392,6 +392,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, QLPreviewPanelDataSour
         fileMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         fileItem.submenu = fileMenu
         NSApp.mainMenu = main
+    }
+
+    @objc private func showAbout() {
+        var options: [NSApplication.AboutPanelOptionKey: Any] = [:]
+        if let source = Bundle.main.object(forInfoDictionaryKey: "sourceURL") as? String,
+           let url = URL(string: source) {
+            options[.credits] = NSAttributedString(string: "\nView on GitHub", attributes: [.link: url])
+        }
+        NSApp.orderFrontStandardAboutPanel(options: options)
     }
 }
 
