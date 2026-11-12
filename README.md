@@ -54,6 +54,8 @@ More on how this works: [Previewing Markdown on macOS in 30 ms: a Rust core and 
 brew install --cask armamut/tap/md-quicklook
 ```
 
+The app is not notarized yet, so macOS blocks the first launch. Open *MD QuickLook* once, then allow it in **System Settings → Privacy & Security → Open Anyway** (or run the `xattr` command below), and open it again to register the Quick Look extensions.
+
 **One line** (downloads the latest release into `/Applications`):
 
 ```sh
